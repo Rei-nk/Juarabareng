@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
-import { supabase } from '../lib/supabaseClient'; // SESUAIKAN PATH INI
+import { supabase } from '../api/supabase'; // SESUAIKAN PATH INI
 
 export default function OnboardingPage({ onFinish }) {
   const [loading, setLoading] = useState(false);
