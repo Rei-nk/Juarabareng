@@ -16,9 +16,10 @@ import ConnectionsPage from './pages/ConnectionsPage';
 import ProfilePage from './pages/ProfilePage'; 
 import EditProfilePage from './pages/EditProfilePage';
 
-// 👇 1. IMPORT DUA HALAMAN BARU DI SINI 👇
+// 👇 IMPORT HALAMAN TAMBAHAN DI SINI 👇
 import NotificationsPage from './pages/NotificationsPage';
-import MentoringPage from './pages/MentoringPage'; // Kita siapkan import untuk halaman Mentoring
+import MentoringPage from './pages/MentoringPage';
+import ProfileDetailPage from './pages/ProfileDetailPage'; // TAMBAHKAN INI
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -105,6 +106,12 @@ export default function App() {
         element={session ? (hasProfile ? <MatchPage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
       />
 
+      {/* 👇 TAMBAHKAN RUTE DETAIL PROFIL DI SINI 👇 */}
+      <Route 
+        path="/profile/:id" 
+        element={session ? (hasProfile ? <ProfileDetailPage /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
+      />
+
       <Route 
         path="/connections" 
         element={session ? (hasProfile ? <ConnectionsPage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
@@ -125,7 +132,6 @@ export default function App() {
         element={session ? (hasProfile ? <BankIdePage /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
       />
 
-      {/* 👇 2. RUTE NOTIFIKASI & MENTORING DITAMBAHKAN DI SINI 👇 */}
       <Route 
         path="/notifications" 
         element={session ? (hasProfile ? <NotificationsPage /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 

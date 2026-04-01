@@ -1,189 +1,209 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // TAMBAHKAN IMPORT INI
+import { supabase } from '../api/supabase'; // SESUAIKAN PATH INI
+import Sidebar from '../components/layout/Sidebar';
 import { 
-  X, 
-  Heart, 
-  Filter, 
-  MapPin, 
-  GraduationCap, 
-  Code, 
-  Palette, 
-  TrendingUp, 
-  MessageSquare,
-  ChevronLeft
+  X, Heart, GraduationCap, Code, Palette, 
+  TrendingUp, Loader2, Search, FileText // TAMBAHKAN FileText
 } from 'lucide-react';
 
-// MOCK DATA: Nanti bisa diganti dengan fetch dari Supabase (tabel profiles)
-const MOCK_PROFILES = [
-  {
-    id: 1,
-    name: "Budi Santoso",
-    role: "Hacker / Programmer",
-    university: "Universitas Indonesia",
-    bio: "Suka bikin web app dan API. Sedang mencari UI/UX Designer dan Bisnis untuk ikut Hackathon bulan depan.",
-    skills: ["React", "Node.js", "Python"],
-    icon: <Code size={40} className="text-blue-500" />,
-    color: "from-blue-500 to-indigo-600"
-  },
-  {
-    id: 2,
-    name: "Sarah Wijaya",
-    role: "Hipster / UI/UX Designer",
-    university: "Institut Teknologi Bandung",
-    bio: "Figma enthusiast. Mencari tim yang butuh desain ciamik dan user-friendly untuk kompetisi startup.",
-    skills: ["Figma", "Prototyping", "User Research"],
-    icon: <Palette size={40} className="text-pink-500" />,
-    color: "from-pink-500 to-rose-600"
-  },
-  {
-    id: 3,
-    name: "Kevin Pratama",
-    role: "Hustler / Business",
-    university: "Universitas Gadjah Mada",
-    bio: "Punya ide startup edukasi. Butuh eksekutor (programmer) untuk merealisasikan MVP.",
-    skills: ["Pitching", "Marketing", "Business Model"],
-    icon: <TrendingUp size={40} className="text-amber-500" />,
-    color: "from-amber-400 to-orange-500"
-  }
-];
-
 export default function MatchPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // INISIALISASI NAVIGATE
+
+  // State Data User & Navigasi
+  const [profiles, setProfiles] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  
+  // State UI (Match Animation)
   const [showMatchAnimation, setShowMatchAnimation] = useState(false);
 
-  const currentProfile = MOCK_PROFILES[currentIndex];
+  // State Search (Hanya untuk Tampilan Sesuai Gambar)
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Fetch Data from Supabase on Load
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*');
+
+        if (error) throw error;
+        
+        console.log("Data profiles dari Supabase:", data); 
+        setProfiles(data || []);
+      } catch (error) {
+        console.error('Error fetching profiles:', error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfiles();
+  }, []);
+
+  const currentProfile = profiles[currentIndex];
 
   const handlePass = () => {
     nextProfile();
   };
 
   const handleConnect = () => {
-    // Animasi "Match" sementara
     setShowMatchAnimation(true);
     setTimeout(() => {
       setShowMatchAnimation(false);
       nextProfile();
-    }, 1500);
+    }, 1200);
   };
 
   const nextProfile = () => {
-    if (currentIndex < MOCK_PROFILES.length - 1) {
+    if (currentIndex < profiles.length - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
-      // Jika sudah habis, kembali ke indeks 0 (untuk demo)
-      setCurrentIndex(0);
+      setProfiles([]); // Habis
     }
   };
 
+  // Helper untuk menentukan icon berdasarkan role jika foto tidak ada
+  const getRoleIcon = (role = '') => {
+    if (!role) return <TrendingUp size={40} className="text-amber-500" />;
+    if (role.toLowerCase().includes('hacker')) return <Code size={40} className="text-blue-500" />;
+    if (role.toLowerCase().includes('hipster')) return <Palette size={40} className="text-pink-500" />;
+    return <TrendingUp size={40} className="text-amber-500" />;
+  };
+
   return (
-    <div className="min-h-screen bg-[#FDFDFF] flex flex-col md:items-center md:justify-center md:py-10">
-      
-      {/* Container Utama ala Mobile App */}
-      <div className="w-full max-w-md bg-white min-h-screen md:min-h-[800px] md:rounded-[3rem] md:shadow-2xl md:shadow-slate-200/50 relative overflow-hidden flex flex-col border border-slate-100">
+    <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans">
+
+      {/* MAIN LAYOUT (Sidebar + Content) */}
+      <div className="flex flex-1">
         
-        {/* --- NAVBAR --- */}
-        <div className="flex items-center justify-between p-6 z-10 bg-white/80 backdrop-blur-md sticky top-0">
-          <button 
-            onClick={() => navigate('/feed')}
-            className="p-3 bg-slate-50 text-slate-400 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-colors"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <div className="text-center">
-            <h1 className="text-lg font-black text-slate-900 tracking-tight">Cari Partner</h1>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Temukan Timmu</p>
-          </div>
-          <button className="p-3 bg-slate-50 text-slate-400 rounded-full hover:bg-slate-100 transition-colors">
-            <Filter size={20} />
-          </button>
-        </div>
+        {/* SIDEBAR */}
+        <Sidebar />
 
-        {/* --- MAIN CONTENT (CARD) --- */}
-        <div className="flex-1 p-6 flex flex-col justify-center relative">
+        {/* MAIN CONTENT AREA (KONTEN MATCH) */}
+        <main className="flex-1 p-6 md:p-10 flex flex-col items-center">
           
-          {/* Animasi Match Overlay */}
-          {showMatchAnimation && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-3xl">
-              <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-full font-black text-2xl animate-bounce shadow-2xl shadow-blue-500/30 flex items-center gap-2">
-                <Heart className="fill-white" /> CONNECTED!
-              </div>
-            </div>
-          )}
+          {/* A. SEARCH BAR */}
+          <div className="w-full max-w-xl mb-10 relative">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <input 
+              type="text"
+              placeholder="Cari nama partner..."
+              className="w-full bg-white border border-slate-100 rounded-3xl py-4 pl-14 pr-6 text-sm focus:ring-2 focus:ring-blue-500 shadow-sm transition-all outline-none"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
 
-          {currentProfile ? (
-            <div className="bg-white border-2 border-slate-100 rounded-[2.5rem] shadow-xl shadow-slate-200/40 overflow-hidden flex flex-col h-[550px] relative transition-all duration-300 transform hover:scale-[1.02]">
-              
-              {/* Bagian Foto/Ilustrasi Profil */}
-              <div className={`h-2/5 bg-gradient-to-br ${currentProfile.color} relative flex items-center justify-center`}>
-                <div className="absolute inset-0 bg-black/10"></div>
-                {/* Lingkaran Avatar */}
-                <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-xl shadow-black/10 z-10 absolute -bottom-12 border-4 border-white">
-                  {currentProfile.icon}
+          {/* B. MATCH CARD CONTAINER */}
+          <div className="w-full max-w-xl flex-1 flex flex-col relative justify-center">
+            
+            {/* Animasi Match Overlay */}
+            {showMatchAnimation && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[3rem]">
+                <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-full font-black text-2xl animate-bounce shadow-2xl flex items-center gap-2">
+                  <Heart className="fill-white" /> CONNECTED!
                 </div>
               </div>
+            )}
 
-              {/* Info Profil */}
-              <div className="pt-16 pb-6 px-6 flex flex-col flex-1 text-center">
-                <h2 className="text-2xl font-black text-slate-900 mb-1">{currentProfile.name}</h2>
-                <p className="text-blue-600 font-bold text-sm mb-4">{currentProfile.role}</p>
-
-                <div className="flex items-center justify-center gap-1 text-slate-500 text-sm font-medium mb-6">
-                  <GraduationCap size={16} />
-                  <span>{currentProfile.university}</span>
-                </div>
-
-                <div className="bg-slate-50 p-4 rounded-2xl mb-6 flex-1 flex items-center justify-center border border-slate-100">
-                  <p className="text-slate-600 text-sm leading-relaxed font-medium">
-                    "{currentProfile.bio}"
-                  </p>
-                </div>
-
-                {/* Skills Tags */}
-                <div className="flex flex-wrap gap-2 justify-center mt-auto">
-                  {currentProfile.skills.map((skill, index) => (
-                    <span key={index} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black tracking-widest uppercase">
-                      {skill}
-                    </span>
-                  ))}
-                </div>
+            {loading ? (
+              <div className="flex flex-col items-center justify-center text-center gap-2 flex-1">
+                <Loader2 className="animate-spin text-blue-600" size={48} />
+                <p className="text-slate-500 font-bold text-sm mt-2">Mencari Partner...</p>
               </div>
-            </div>
-          ) : (
-             <div className="text-center p-10">
-               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
-                 <X size={30} />
-               </div>
-               <h3 className="text-xl font-bold text-slate-900">Habis!</h3>
-               <p className="text-slate-500 text-sm">Tidak ada lagi profil di sekitarmu.</p>
-             </div>
-          )}
+            ) : currentProfile ? (
+              <>
+                {/* --- KARTU PROFIL --- */}
+                <div className="bg-white border border-slate-100 rounded-[3rem] shadow-xl shadow-slate-200/40 overflow-hidden flex flex-col min-h-[500px] relative transition-all duration-300">
+                  
+                  {/* Header Kartu (Gradient) */}
+                  <div className={`h-1/3 min-h-[160px] bg-gradient-to-br from-blue-500 to-indigo-600 relative flex items-center justify-center`}>
+                    <div className="absolute inset-0 bg-black/10"></div>
+                    
+                    {/* AVATAR */}
+                    <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-xl shadow-black/10 z-10 absolute -bottom-12 border-4 border-white overflow-hidden">
+                      {currentProfile.avatar_url || currentProfile.photo_url ? (
+                        <img 
+                          src={currentProfile.avatar_url || currentProfile.photo_url} 
+                          alt={currentProfile.name || "User Photo"} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        getRoleIcon(currentProfile.role)
+                      )}
+                    </div>
+                  </div>
 
-        </div>
+                  {/* Info User */}
+                  <div className="pt-16 pb-6 px-8 flex flex-col flex-1 text-center">
+                    
+                    {/* NAMA USER */}
+                    <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                      {currentProfile.name || currentProfile.full_name || "Pengguna Tanpa Nama"}
+                    </h2>
+                    
+                    {/* ROLE */}
+                    <p className="text-blue-600 font-bold text-sm mb-4 mt-1 tracking-wide uppercase">
+                      {currentProfile.role || "Innovator"}
+                    </p>
 
-        {/* --- ACTION BUTTONS --- */}
-        <div className="p-6 pb-10 flex justify-center gap-6 z-10">
-          <button 
-            onClick={handlePass}
-            className="w-16 h-16 bg-white border-2 border-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 transition-all shadow-lg shadow-slate-200/50 hover:scale-110 active:scale-95"
-          >
-            <X size={28} />
-          </button>
+                    {/* UNIVERSITAS */}
+                    <div className="flex items-center justify-center gap-1.5 text-slate-500 text-sm font-medium mb-6">
+                      <GraduationCap size={16} />
+                      <span>{currentProfile.university || currentProfile.univ || "Universitas Belum Diisi"}</span>
+                    </div>
 
-          <button 
-            className="w-16 h-16 bg-white border-2 border-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-lg shadow-slate-200/50 hover:scale-110 active:scale-95"
-          >
-            <MessageSquare size={24} />
-          </button>
+                    {/* BIO */}
+                    <div className="bg-slate-50 p-6 rounded-2xl mb-6 flex-1 flex items-center justify-center border border-slate-100 italic">
+                      <p className="text-slate-700 text-base leading-relaxed font-medium">
+                        "{currentProfile.bio || 'Pengguna ini belum menuliskan bio apapun.'}"
+                      </p>
+                    </div>
 
-          <button 
-            onClick={handleConnect}
-            className="w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white hover:shadow-xl hover:shadow-blue-500/40 transition-all hover:scale-110 active:scale-95"
-          >
-            <Heart size={28} className="fill-white/20" />
-          </button>
-        </div>
+                    {/* --- TOMBOL LIHAT CV LENGKAP --- */}
+                    <button 
+                      onClick={() => navigate(`/profile/${currentProfile.id}`)}
+                      className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 shadow-md"
+                    >
+                      <FileText size={18} />
+                      Lihat CV Lengkap
+                    </button>
 
+                  </div>
+                </div>
+
+                {/* --- TOMBOL AKSI (PASS & CONNECT) --- */}
+                <div className="flex justify-center gap-6 mt-10 pb-6 z-10">
+                  <button 
+                    onClick={handlePass}
+                    className="w-16 h-16 bg-white border border-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:shadow-lg transition-all active:scale-95"
+                  >
+                    <X size={28} />
+                  </button>
+
+                  <button 
+                    onClick={handleConnect}
+                    className="w-16 h-16 bg-white border border-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-blue-500 hover:shadow-lg transition-all active:scale-95"
+                  >
+                    <Heart size={28} className="fill-current" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center p-10 flex-1 flex flex-col items-center justify-center">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-400">
+                  <X size={30} />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900">Habis!</h3>
+                <p className="text-slate-500 text-sm">Tidak ada lagi profil di sekitarmu.</p>
+              </div>
+            )}
+          </div>
+        </main>
       </div>
     </div>
   );
