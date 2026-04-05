@@ -4,7 +4,6 @@ import {
   Smile, Paperclip, CheckCheck, MessageSquare
 } from 'lucide-react';
 import Sidebar from '../components/layout/Sidebar';
-// Pastikan path import supabase di bawah ini sesuai dengan struktur folder kamu!
 import { supabase } from '../api/supabase'; 
 
 export default function ConnectionsPage() {
@@ -63,7 +62,7 @@ export default function ConnectionsPage() {
             .or(`and(sender_id.eq.${userId},receiver_id.eq.${p.id}),and(sender_id.eq.${p.id},receiver_id.eq.${userId})`)
             .order('created_at', { ascending: false })
             .limit(1)
-            .maybeSingle(); // maybeSingle mencegah error jika tidak ada pesan sama sekali
+            .maybeSingle(); 
 
           return {
             id: p.id,
@@ -108,7 +107,7 @@ export default function ConnectionsPage() {
     fetchMessages();
   }, [activeChat, currentUser]);
 
-  // 4. Sensor REALTIME untuk pesan baru dari lawan bicara
+  // 4a. Sensor REALTIME untuk PESAN BARU dari lawan bicara
   useEffect(() => {
     if (!currentUser) return;
 
@@ -121,8 +120,6 @@ export default function ConnectionsPage() {
       }, (payload) => {
         const newMsg = payload.new;
         
-        // Hanya tambahkan pesan dari Realtime JIKA pengirimnya BUKAN kita sendiri.
-        // Karena pesan kita sendiri sudah ditambahkan secara instan via Optimistic UI di fungsi handleSendMessage.
         if (newMsg.sender_id !== currentUser.id && activeChat && (
           (newMsg.sender_id === currentUser.id && newMsg.receiver_id === activeChat.id) ||
           (newMsg.sender_id === activeChat.id && newMsg.receiver_id === currentUser.id)
@@ -135,6 +132,33 @@ export default function ConnectionsPage() {
     return () => supabase.removeChannel(channel);
   }, [currentUser, activeChat]);
 
+  // 4b. Sensor REALTIME untuk KONEKSI BARU (Ketika teman menerima request kita)
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const koneksiChannel = supabase
+      .channel('koneksi_updates_channel')
+      .on('postgres_changes', { 
+        event: 'UPDATE', // Trigger saat status koneksi berubah (misal dari pending ke accepted)
+        schema: 'public', 
+        table: 'koneksi' 
+      }, (payload) => {
+        const updatedConn = payload.new;
+        
+        // Jika koneksi terkait dengan kita dan statusnya menjadi 'accepted'
+        if (
+          updatedConn.status === 'accepted' && 
+          (updatedConn.user_id_1 === currentUser.id || updatedConn.user_id_2 === currentUser.id)
+        ) {
+          // Tarik ulang daftar kontak secara realtime!
+          fetchConnections(currentUser.id);
+        }
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(koneksiChannel);
+  }, [currentUser]);
+
   // Auto-scroll ke pesan terbawah
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -146,11 +170,10 @@ export default function ConnectionsPage() {
     if (!messageInput.trim() || !activeChat || !currentUser) return;
 
     const textToSend = messageInput;
-    setMessageInput(''); // Kosongkan input seketika
+    setMessageInput(''); 
 
-    // --- OPTIMISTIC UI: Langsung render ke layar sebelum nunggu database ---
     const tempMessage = {
-      id: crypto.randomUUID(), // ID sementara agar React key tidak error
+      id: crypto.randomUUID(), 
       sender_id: currentUser.id,
       receiver_id: activeChat.id,
       pesan: textToSend,
@@ -158,9 +181,7 @@ export default function ConnectionsPage() {
       created_at: new Date().toISOString()
     };
     setMessages((prev) => [...prev, tempMessage]);
-    // ------------------------------------------------------------------------
 
-    // Proses masuk ke Supabase berjalan di background
     const { error } = await supabase
       .from('pesan_chat')
       .insert([
@@ -174,11 +195,9 @@ export default function ConnectionsPage() {
 
     if (error) {
       console.error('Gagal mengirim pesan:', error);
-      // Opsional: Tarik kembali pesan sementara jika ternyata gagal koneksi
       setMessages((prev) => prev.filter(msg => msg.id !== tempMessage.id));
       alert('Gagal mengirim pesan. Periksa koneksi internetmu.');
     } else {
-      // Perbarui 'Last Message' di sidebar sebelah kiri secara lokal
       setConnections(prev => prev.map(conn => 
         conn.id === activeChat.id 
           ? { ...conn, lastMessage: textToSend, time: new Date().toISOString() } 
@@ -187,12 +206,10 @@ export default function ConnectionsPage() {
     }
   };
 
-  // Filter pencarian teman
   const filteredConnections = connections.filter(conn => 
     conn.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Fungsi untuk memformat jam (contoh: 14:30)
   const formatTime = (isoString) => {
     if (!isoString) return '';
     const date = new Date(isoString);
@@ -204,9 +221,16 @@ export default function ConnectionsPage() {
       <Sidebar />
 
       <main className="flex-1 flex flex-col p-4 md:p-6 h-screen">
-        {/* Header Halaman */}
+        
+        {/* Header Halaman (Dimodifikasi untuk menampilkan jumlah teman) */}
         <div className="mb-6">
-          <h1 className="text-3xl font-black text-slate-900">Koneksi & Pesan</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-black text-slate-900">Koneksi & Pesan</h1>
+            {/* Lencana Jumlah Koneksi */}
+            <div className="bg-blue-100 text-blue-700 font-bold text-sm px-3.5 py-1 rounded-full flex items-center justify-center border border-blue-200">
+              {connections.length} Teman
+            </div>
+          </div>
           <p className="text-slate-500 font-medium mt-1">Kelola jaringan dan diskusikan ide dengan rekan setim.</p>
         </div>
 
@@ -230,7 +254,7 @@ export default function ConnectionsPage() {
 
             <div className="flex-1 overflow-y-auto p-3 space-y-1">
               {filteredConnections.length === 0 ? (
-                 <p className="text-center text-sm text-slate-400 mt-10">
+                 <p className="text-center text-sm text-slate-400 mt-10 px-4">
                    {searchTerm ? 'Kontak tidak ditemukan.' : 'Belum ada koneksi. Mulai cari teman di halaman Match!'}
                  </p>
               ) : (

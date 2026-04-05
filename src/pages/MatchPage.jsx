@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // TAMBAHKAN IMPORT INI
-import { supabase } from '../api/supabase'; // SESUAIKAN PATH INI
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../api/supabase';
 import Sidebar from '../components/layout/Sidebar';
 import { 
   X, Heart, GraduationCap, Code, Palette, 
-  TrendingUp, Loader2, Search, FileText // TAMBAHKAN FileText
+  TrendingUp, Loader2, Search, FileText 
 } from 'lucide-react';
 
 export default function MatchPage() {
-  const navigate = useNavigate(); // INISIALISASI NAVIGATE
+  const navigate = useNavigate();
 
   // State Data User & Navigasi
+  const [currentUser, setCurrentUser] = useState(null); // Tambahan: Menyimpan data user login
   const [profiles, setProfiles] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -18,7 +19,7 @@ export default function MatchPage() {
   // State UI (Match Animation)
   const [showMatchAnimation, setShowMatchAnimation] = useState(false);
 
-  // State Search (Hanya untuk Tampilan Sesuai Gambar)
+  // State Search 
   const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch Data from Supabase on Load
@@ -26,14 +27,39 @@ export default function MatchPage() {
     const fetchProfiles = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*');
-
-        if (error) throw error;
+        // 1. Dapatkan user yang sedang login
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError) throw authError;
         
-        console.log("Data profiles dari Supabase:", data); 
-        setProfiles(data || []);
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+        setCurrentUser(user);
+
+        // 2. Ambil daftar koneksi yang sudah ada (pending, accepted, rejected)
+        const { data: existingConnections, error: connError } = await supabase
+          .from('koneksi')
+          .select('user_id_1, user_id_2')
+          .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`);
+
+        if (connError) throw connError;
+
+        // 3. Buat daftar ID yang harus diabaikan (Diri sendiri + orang yang sudah terkoneksi)
+        const ignoredIds = [user.id]; 
+        existingConnections.forEach(conn => {
+          ignoredIds.push(conn.user_id_1 === user.id ? conn.user_id_2 : conn.user_id_1);
+        });
+
+        // 4. Ambil profil, KECUALI yang ID-nya ada di daftar ignoredIds
+        const { data: profilesData, error: profError } = await supabase
+          .from('profiles')
+          .select('*')
+          .not('id', 'in', `(${ignoredIds.join(',')})`); // Filter anti-duplikat koneksi
+
+        if (profError) throw profError;
+        
+        setProfiles(profilesData || []);
       } catch (error) {
         console.error('Error fetching profiles:', error.message);
       } finally {
@@ -50,8 +76,31 @@ export default function MatchPage() {
     nextProfile();
   };
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
+    if (!currentUser || !currentProfile) return;
+
+    // Tampilkan animasi secara instan (Optimistic UI)
     setShowMatchAnimation(true);
+
+    try {
+      // Masukkan data koneksi baru ke Supabase
+      const { error } = await supabase
+        .from('koneksi')
+        .insert([
+          {
+            user_id_1: currentUser.id,
+            user_id_2: currentProfile.id,
+            status: 'pending' 
+          }
+        ]);
+
+      if (error) throw error;
+      
+    } catch (error) {
+      console.error("Gagal mengirim permintaan koneksi:", error.message);
+    }
+
+    // Pindah ke profil berikutnya setelah animasi selesai
     setTimeout(() => {
       setShowMatchAnimation(false);
       nextProfile();
@@ -74,19 +123,23 @@ export default function MatchPage() {
     return <TrendingUp size={40} className="text-amber-500" />;
   };
 
+  // Filter profil berdasarkan kolom pencarian
+  const filteredProfiles = profiles.filter(p => 
+    (p.name || p.full_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  // Karena difilter, kita pastikan currentProfile mengikuti index dari filteredProfiles
+  const displayProfile = searchTerm ? filteredProfiles[currentIndex] : currentProfile;
+
   return (
     <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans">
-
-      {/* MAIN LAYOUT (Sidebar + Content) */}
       <div className="flex flex-1">
         
-        {/* SIDEBAR */}
         <Sidebar />
 
-        {/* MAIN CONTENT AREA (KONTEN MATCH) */}
         <main className="flex-1 p-6 md:p-10 flex flex-col items-center">
           
-          {/* A. SEARCH BAR */}
+          {/* SEARCH BAR */}
           <div className="w-full max-w-xl mb-10 relative">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input 
@@ -94,14 +147,16 @@ export default function MatchPage() {
               placeholder="Cari nama partner..."
               className="w-full bg-white border border-slate-100 rounded-3xl py-4 pl-14 pr-6 text-sm focus:ring-2 focus:ring-blue-500 shadow-sm transition-all outline-none"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentIndex(0); // Reset index jika user mengetik pencarian baru
+              }}
             />
           </div>
 
-          {/* B. MATCH CARD CONTAINER */}
+          {/* MATCH CARD CONTAINER */}
           <div className="w-full max-w-xl flex-1 flex flex-col relative justify-center">
             
-            {/* Animasi Match Overlay */}
             {showMatchAnimation && (
               <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[3rem]">
                 <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-full font-black text-2xl animate-bounce shadow-2xl flex items-center gap-2">
@@ -115,68 +170,56 @@ export default function MatchPage() {
                 <Loader2 className="animate-spin text-blue-600" size={48} />
                 <p className="text-slate-500 font-bold text-sm mt-2">Mencari Partner...</p>
               </div>
-            ) : currentProfile ? (
+            ) : displayProfile ? (
               <>
-                {/* --- KARTU PROFIL --- */}
                 <div className="bg-white border border-slate-100 rounded-[3rem] shadow-xl shadow-slate-200/40 overflow-hidden flex flex-col min-h-[500px] relative transition-all duration-300">
                   
-                  {/* Header Kartu (Gradient) */}
                   <div className={`h-1/3 min-h-[160px] bg-gradient-to-br from-blue-500 to-indigo-600 relative flex items-center justify-center`}>
                     <div className="absolute inset-0 bg-black/10"></div>
                     
-                    {/* AVATAR */}
                     <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-xl shadow-black/10 z-10 absolute -bottom-12 border-4 border-white overflow-hidden">
-                      {currentProfile.avatar_url || currentProfile.photo_url ? (
+                      {displayProfile.avatar_url || displayProfile.photo_url ? (
                         <img 
-                          src={currentProfile.avatar_url || currentProfile.photo_url} 
-                          alt={currentProfile.name || "User Photo"} 
+                          src={displayProfile.avatar_url || displayProfile.photo_url} 
+                          alt={displayProfile.name || "User Photo"} 
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        getRoleIcon(currentProfile.role)
+                        getRoleIcon(displayProfile.role)
                       )}
                     </div>
                   </div>
 
-                  {/* Info User */}
                   <div className="pt-16 pb-6 px-8 flex flex-col flex-1 text-center">
-                    
-                    {/* NAMA USER */}
                     <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                      {currentProfile.name || currentProfile.full_name || "Pengguna Tanpa Nama"}
+                      {displayProfile.name || displayProfile.full_name || "Pengguna Tanpa Nama"}
                     </h2>
                     
-                    {/* ROLE */}
                     <p className="text-blue-600 font-bold text-sm mb-4 mt-1 tracking-wide uppercase">
-                      {currentProfile.role || "Innovator"}
+                      {displayProfile.role || "Innovator"}
                     </p>
 
-                    {/* UNIVERSITAS */}
                     <div className="flex items-center justify-center gap-1.5 text-slate-500 text-sm font-medium mb-6">
                       <GraduationCap size={16} />
-                      <span>{currentProfile.university || currentProfile.univ || "Universitas Belum Diisi"}</span>
+                      <span>{displayProfile.university || displayProfile.univ || "Universitas Belum Diisi"}</span>
                     </div>
 
-                    {/* BIO */}
                     <div className="bg-slate-50 p-6 rounded-2xl mb-6 flex-1 flex items-center justify-center border border-slate-100 italic">
                       <p className="text-slate-700 text-base leading-relaxed font-medium">
-                        "{currentProfile.bio || 'Pengguna ini belum menuliskan bio apapun.'}"
+                        "{displayProfile.bio || 'Pengguna ini belum menuliskan bio apapun.'}"
                       </p>
                     </div>
 
-                    {/* --- TOMBOL LIHAT CV LENGKAP --- */}
                     <button 
-                      onClick={() => navigate(`/profile/${currentProfile.id}`)}
+                      onClick={() => navigate(`/profile/${displayProfile.id}`)}
                       className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 shadow-md"
                     >
                       <FileText size={18} />
                       Lihat CV Lengkap
                     </button>
-
                   </div>
                 </div>
 
-                {/* --- TOMBOL AKSI (PASS & CONNECT) --- */}
                 <div className="flex justify-center gap-6 mt-10 pb-6 z-10">
                   <button 
                     onClick={handlePass}
@@ -199,7 +242,7 @@ export default function MatchPage() {
                   <X size={30} />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900">Habis!</h3>
-                <p className="text-slate-500 text-sm">Tidak ada lagi profil di sekitarmu.</p>
+                <p className="text-slate-500 text-sm">Tidak ada lagi profil baru yang tersedia.</p>
               </div>
             )}
           </div>
