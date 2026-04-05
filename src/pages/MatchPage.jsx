@@ -11,7 +11,7 @@ export default function MatchPage() {
   const navigate = useNavigate();
 
   // State Data User & Navigasi
-  const [currentUser, setCurrentUser] = useState(null); // Tambahan: Menyimpan data user login
+  const [currentUser, setCurrentUser] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -55,7 +55,7 @@ export default function MatchPage() {
         const { data: profilesData, error: profError } = await supabase
           .from('profiles')
           .select('*')
-          .not('id', 'in', `(${ignoredIds.join(',')})`); // Filter anti-duplikat koneksi
+          .not('id', 'in', `(${ignoredIds.join(',')})`);
 
         if (profError) throw profError;
         
@@ -72,46 +72,77 @@ export default function MatchPage() {
 
   const currentProfile = profiles[currentIndex];
 
+  // Filter profil berdasarkan kolom pencarian
+  const filteredProfiles = profiles.filter(p => 
+    (p.name || p.full_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  // Ambil profil yang benar-benar sedang tampil di layar
+  const displayProfile = searchTerm ? filteredProfiles[currentIndex] : currentProfile;
+
   const handlePass = () => {
     nextProfile();
   };
 
   const handleConnect = async () => {
-    if (!currentUser || !currentProfile) return;
+    // PENTING: Gunakan displayProfile, bukan currentProfile agar search aman
+    const targetProfile = displayProfile;
+    
+    if (!currentUser || !targetProfile) return;
+    if (showMatchAnimation) return; // Cegah double click saat animasi berjalan
 
-    // Tampilkan animasi secara instan (Optimistic UI)
     setShowMatchAnimation(true);
 
     try {
-      // Masukkan data koneksi baru ke Supabase
-      const { error } = await supabase
+      // SAFETY CHECK: Pastikan benar-benar belum ada koneksi di database (menghindari duplikasi)
+      const { data: existingConnection } = await supabase
         .from('koneksi')
-        .insert([
-          {
-            user_id_1: currentUser.id,
-            user_id_2: currentProfile.id,
-            status: 'pending' 
-          }
-        ]);
+        .select('id')
+        .or(`and(user_id_1.eq.${currentUser.id},user_id_2.eq.${targetProfile.id}),and(user_id_1.eq.${targetProfile.id},user_id_2.eq.${currentUser.id})`)
+        .single();
 
-      if (error) throw error;
-      
+      // Jika ternyata belum ada koneksi, lakukan Insert
+      if (!existingConnection) {
+        const { error } = await supabase
+          .from('koneksi')
+          .insert([
+            {
+              user_id_1: currentUser.id,
+              user_id_2: targetProfile.id,
+              status: 'pending' 
+            }
+          ]);
+
+        if (error) throw error;
+      }
     } catch (error) {
       console.error("Gagal mengirim permintaan koneksi:", error.message);
+    } finally {
+      // Pindah ke profil berikutnya setelah animasi selesai (1.2 detik)
+      setTimeout(() => {
+        setShowMatchAnimation(false);
+        nextProfile();
+      }, 1200);
     }
-
-    // Pindah ke profil berikutnya setelah animasi selesai
-    setTimeout(() => {
-      setShowMatchAnimation(false);
-      nextProfile();
-    }, 1200);
   };
 
   const nextProfile = () => {
-    if (currentIndex < profiles.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+    if (searchTerm) {
+      // Jika sedang mode pencarian
+      if (currentIndex < filteredProfiles.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+      } else {
+        // Hapus yang sudah di-pass/connect dari state utama
+        setProfiles(prev => prev.filter(p => p.id !== displayProfile.id));
+        setCurrentIndex(0);
+      }
     } else {
-      setProfiles([]); // Habis
+      // Jika mode normal
+      if (currentIndex < profiles.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+      } else {
+        setProfiles([]); // Habis
+      }
     }
   };
 
@@ -122,14 +153,6 @@ export default function MatchPage() {
     if (role.toLowerCase().includes('hipster')) return <Palette size={40} className="text-pink-500" />;
     return <TrendingUp size={40} className="text-amber-500" />;
   };
-
-  // Filter profil berdasarkan kolom pencarian
-  const filteredProfiles = profiles.filter(p => 
-    (p.name || p.full_name || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
-  // Karena difilter, kita pastikan currentProfile mengikuti index dari filteredProfiles
-  const displayProfile = searchTerm ? filteredProfiles[currentIndex] : currentProfile;
 
   return (
     <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans">
@@ -223,14 +246,16 @@ export default function MatchPage() {
                 <div className="flex justify-center gap-6 mt-10 pb-6 z-10">
                   <button 
                     onClick={handlePass}
-                    className="w-16 h-16 bg-white border border-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:shadow-lg transition-all active:scale-95"
+                    disabled={showMatchAnimation}
+                    className="w-16 h-16 bg-white border border-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:shadow-lg transition-all active:scale-95 disabled:opacity-50"
                   >
                     <X size={28} />
                   </button>
 
                   <button 
                     onClick={handleConnect}
-                    className="w-16 h-16 bg-white border border-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-blue-500 hover:shadow-lg transition-all active:scale-95"
+                    disabled={showMatchAnimation}
+                    className="w-16 h-16 bg-white border border-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-blue-500 hover:shadow-lg transition-all active:scale-95 disabled:opacity-50"
                   >
                     <Heart size={28} className="fill-current" />
                   </button>
