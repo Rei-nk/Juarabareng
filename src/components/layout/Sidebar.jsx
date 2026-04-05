@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../api/supabase';
+import myLogo from '../assets/logo-bawah.png';
 
 export default function Sidebar({ onLogout }) {
   const navigate = useNavigate();
@@ -74,6 +75,12 @@ export default function Sidebar({ onLogout }) {
     <aside className="w-64 bg-white border-r border-slate-200 flex flex-col sticky top-0 h-screen z-20">
       
       {/* Area Header (Logo + Tombol Notifikasi) */}
+      
+      <div className="sidebar">
+        {/* 2. Gunakan variabel hasil import sebagai src */}
+        <img src={myLogo} alt="Logo" className="w-10 h-10" />
+      </div>
+      
       <div className="p-6 border-b border-slate-100 flex items-center justify-between h-20">
         <div 
           className="flex items-center gap-2 cursor-pointer" 
