@@ -8,39 +8,55 @@ import {
   User, 
   LogOut,
   MessageSquare,
-  Bell // 1. Tambahkan import Bell
+  Bell 
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { supabase } from '../../api/supabase'; // 2. Pastikan path import Supabase sesuai dengan foldermu
+import { supabase } from '../../api/supabase';
 
 export default function Sidebar({ onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // 3. State untuk menyimpan jumlah notifikasi yang belum dibaca
+  // State untuk notifikasi dan profil
   const [unreadCount, setUnreadCount] = useState(0);
+  const [userProfile, setUserProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
 
-  // 4. Ambil data notifikasi saat komponen dimuat
   useEffect(() => {
-    const fetchNotificationCount = async () => {
+    const fetchSidebarData = async () => {
       try {
+        setLoadingProfile(true);
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { count, error } = await supabase
+        // 1. Ambil Notifikasi Mentoring
+        const { count, error: notifError } = await supabase
           .from('mentoring_requests')
           .select('*', { count: 'exact', head: true })
           .eq('mentor_id', user.id)
           .eq('status', 'pending');
 
-        if (error) throw error;
-        setUnreadCount(count || 0);
+        if (!notifError) setUnreadCount(count || 0);
+
+        // 2. Ambil Data Profil User yang Sedang Login
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (!profileError && profileData) {
+          setUserProfile(profileData);
+        }
+
       } catch (error) {
-        console.error("Gagal mengambil notifikasi:", error);
+        console.error("Gagal mengambil data sidebar:", error);
+      } finally {
+        setLoadingProfile(false);
       }
     };
 
-    fetchNotificationCount();
+    fetchSidebarData();
   }, []);
 
   // Data menu navigasi
@@ -57,7 +73,7 @@ export default function Sidebar({ onLogout }) {
   return (
     <aside className="w-64 bg-white border-r border-slate-200 flex flex-col sticky top-0 h-screen z-20">
       
-      {/* 5. Area Header (Logo + Tombol Notifikasi) */}
+      {/* Area Header (Logo + Tombol Notifikasi) */}
       <div className="p-6 border-b border-slate-100 flex items-center justify-between h-20">
         <div 
           className="flex items-center gap-2 cursor-pointer" 
@@ -126,7 +142,7 @@ export default function Sidebar({ onLogout }) {
         })}
       </nav>
 
-      {/* Profil User di bagian bawah */}
+      {/* Profil User di bagian bawah (Dinamis) */}
       <div className="p-4 border-t border-slate-100 mt-auto bg-slate-50/50">
         <div 
           onClick={() => navigate('/profile')}
@@ -134,13 +150,41 @@ export default function Sidebar({ onLogout }) {
             location.pathname === '/profile' ? 'bg-white border-slate-200 ring-1 ring-slate-100' : ''
           }`}
         >
-          <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center font-bold text-lg text-white shadow-sm group-hover:scale-105 transition-transform">
-            R
-          </div>
-          <div className="overflow-hidden">
-            <p className="font-bold text-sm text-slate-900 truncate">Rei</p>
-            <p className="text-[10px] text-slate-400 uppercase tracking-wider font-black truncate">INFORMATIKA</p>
-          </div>
+          {loadingProfile ? (
+            // State Loading (Skeleton)
+            <>
+              <div className="w-10 h-10 bg-slate-200 animate-pulse rounded-xl shrink-0"></div>
+              <div className="flex-1 space-y-2 animate-pulse w-full overflow-hidden">
+                <div className="h-3 bg-slate-200 rounded w-1/2"></div>
+                <div className="h-2 bg-slate-200 rounded w-3/4"></div>
+              </div>
+            </>
+          ) : (
+            // State Data Tersedia
+            <>
+              <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center font-bold text-lg text-white shadow-sm group-hover:scale-105 transition-transform shrink-0 overflow-hidden">
+                {userProfile?.avatar_url || userProfile?.photo_url ? (
+                  <img 
+                    src={userProfile.avatar_url || userProfile.photo_url} 
+                    alt="Profil" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  // Mengambil huruf pertama dari nama jika foto tidak ada
+                  (userProfile?.name || userProfile?.full_name || 'U').charAt(0).toUpperCase()
+                )}
+              </div>
+              <div className="overflow-hidden flex-1">
+                <p className="font-bold text-sm text-slate-900 truncate">
+                  {userProfile?.name || userProfile?.full_name || 'Pengguna'}
+                </p>
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-black truncate">
+                  {/* Gunakan major, role, atau jurusan, sesuaikan dengan database-mu */}
+                  {userProfile?.major || userProfile?.role || 'MEMBER'}
+                </p>
+              </div>
+            </>
+          )}
         </div>
         
         <button 

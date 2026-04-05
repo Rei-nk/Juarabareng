@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Camera, Edit3, Share2, MapPin, GraduationCap, Link as LinkIcon, 
   FileText, Trophy, Plus, Award, Code, Zap, Sparkles, User, Bell, Search, Menu, MessageSquare,
-  Loader2, LogOut, Image, CheckCircle, X, Star, BookOpen
+  Loader2, LogOut, Image, CheckCircle, X, Star, BookOpen, Users
 } from 'lucide-react';
 import Sidebar from '../components/layout/Sidebar';
 import Topheader from '../components/Topheader';
@@ -12,6 +12,7 @@ import { supabase } from '../api/supabase';
 export default function ProfilePage() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
+  const [connectionCount, setConnectionCount] = useState(0); // State untuk jumlah koneksi
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -37,17 +38,29 @@ export default function ProfilePage() {
         return;
       }
 
-      const { data, error } = await supabase
+      // 1. Ambil Data Profil
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (error) throw error;
-      
-      setProfile(data);
+      if (profileError) throw profileError;
+      setProfile(profileData);
+
+      // 2. Ambil Jumlah Koneksi (Cepat karena hanya hitung baris)
+      const { count, error: countError } = await supabase
+        .from('koneksi')
+        .select('*', { count: 'exact', head: true })
+        .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+        .eq('status', 'accepted');
+
+      if (!countError && count !== null) {
+        setConnectionCount(count);
+      }
+
     } catch (error) {
-      console.error('Error fetching profile:', error.message);
+      console.error('Error fetching data:', error.message);
       setErrorMsg('Gagal memuat data profil. Silakan muat ulang halaman.');
     } finally {
       setIsLoading(false);
@@ -140,7 +153,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !profile) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -229,43 +242,64 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {/* Detail Teks dari Database */}
+                {/* Detail Teks yang Telah Dirapikan */}
                 <div>
-                  <div className="flex flex-col md:flex-row md:items-center gap-3 mb-2">
+                  <div className="flex flex-col md:flex-row md:items-center gap-3 mb-1">
                     <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">{fullName}</h1>
                     
-                    {/* Badge Kolaborasi */}
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-yellow-100/50 text-yellow-700 text-xs font-black uppercase tracking-wider border border-yellow-200 w-fit">
-                      <Sparkles size={14} className="text-yellow-500" />
-                      Open to Collaborate
-                    </span>
-
-                    {/* Badge Mentor (Hanya muncul jika is_mentor = true) */}
-                    {profile?.is_mentor && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-100 text-blue-700 text-xs font-black uppercase tracking-wider border border-blue-200 w-fit">
-                        <CheckCircle size={14} className="text-blue-600" />
-                        Mentor Terverifikasi
+                    <div className="flex flex-wrap gap-2">
+                      {/* Badge Kolaborasi */}
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-yellow-100/80 text-yellow-700 text-xs font-black uppercase tracking-wider border border-yellow-200 w-fit">
+                        <Sparkles size={14} className="text-yellow-500" />
+                        Open to Collaborate
                       </span>
-                    )}
+
+                      {/* Badge Mentor */}
+                      {profile?.is_mentor && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-100 text-blue-700 text-xs font-black uppercase tracking-wider border border-blue-200 w-fit">
+                          <CheckCircle size={14} className="text-blue-600" />
+                          Mentor Terverifikasi
+                        </span>
+                      )}
+                    </div>
                   </div>
                   
-                  <p className="text-slate-500 font-medium text-lg mb-6">@{username} • {title}</p>
+                  <p className="text-slate-500 font-medium text-lg mb-5">@{username} • {title}</p>
                   
-                  <div className="flex flex-wrap gap-4 md:gap-6 text-sm font-bold text-slate-600 bg-slate-50 p-4 rounded-2xl w-fit border border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <MapPin size={16} className="text-blue-500" />
-                      {location}
+                  {/* Bar Info: Koneksi & Detail Geografis */}
+                  <div className="flex flex-wrap items-center gap-4">
+                    {/* Badge Koneksi */}
+                    <div className="flex items-center gap-3 px-4 py-2.5 bg-blue-50 border border-blue-100 rounded-xl">
+                      <div className="p-1.5 bg-blue-100 rounded-lg text-blue-600">
+                        <Users size={18} />
+                      </div>
+                      <div className="flex flex-col leading-none">
+                        <span className="text-lg font-black text-slate-800">{connectionCount}</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Koneksi</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <GraduationCap size={16} className="text-blue-500" />
-                      {university}
+
+                    {/* Badge Lokasi & Edukasi */}
+                    <div className="flex flex-wrap gap-4 text-sm font-bold text-slate-600 bg-slate-50 p-3.5 px-5 rounded-xl border border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <MapPin size={16} className="text-blue-500" />
+                        {location}
+                      </div>
+                      <div className="w-px h-4 bg-slate-200 hidden md:block"></div>
+                      <div className="flex items-center gap-2">
+                        <GraduationCap size={16} className="text-blue-500" />
+                        {university}
+                      </div>
+                      {profile?.github_link && (
+                        <>
+                          <div className="w-px h-4 bg-slate-200 hidden md:block"></div>
+                          <div className="flex items-center gap-2">
+                            <LinkIcon size={16} className="text-blue-500" />
+                            <a href={profile.github_link} target="_blank" rel="noreferrer" className="hover:text-blue-600 transition-colors">Portofolio</a>
+                          </div>
+                        </>
+                      )}
                     </div>
-                    {profile?.github_link && (
-                       <div className="flex items-center gap-2">
-                         <LinkIcon size={16} className="text-blue-500" />
-                         <a href={profile.github_link} target="_blank" rel="noreferrer" className="hover:text-blue-600 transition-colors">Portofolio/Link</a>
-                       </div>
-                    )}
                   </div>
                 </div>
               </div>

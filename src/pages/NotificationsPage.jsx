@@ -16,12 +16,13 @@ export default function NotificationsPage() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
 
-      // Ambil data request di mana user ini adalah mentornya, DAN ambil juga data profil si mentee
+      // Ambil data request di mana user ini adalah mentornya, 
+      // DAN ambil juga data profil si mentee (id, university, full_name)
       const { data, error } = await supabase
         .from('mentoring_requests')
         .select(`
           *,
-          mentee:mentee_id ( id, university )
+          mentee:mentee_id ( id, university, full_name )
         `)
         .eq('mentor_id', userData.user.id)
         .order('created_at', { ascending: false });
@@ -89,12 +90,17 @@ export default function NotificationsPage() {
                     {pendingRequests.map(req => (
                       <div key={req.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-blue-100 bg-blue-50/50">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center">
+                          <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center shrink-0">
                             <User className="text-slate-500" />
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900">Seseorang mengajukan sesi mentoring!</p>
-                            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">{req.mentee?.university || 'Mahasiswa'}</p>
+                            {/* Menampilkan nama pengguna yang request */}
+                            <p className="font-bold text-slate-900">
+                              {req.mentee?.full_name || 'Seseorang'} mengajukan sesi mentoring!
+                            </p>
+                            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">
+                              {req.mentee?.university || 'Mahasiswa'}
+                            </p>
                             {req.message && <p className="text-sm text-slate-600 mt-1 italic">"{req.message}"</p>}
                           </div>
                         </div>
@@ -119,8 +125,11 @@ export default function NotificationsPage() {
                   <div className="space-y-3">
                     {historyRequests.map(req => (
                       <div key={req.id} className="flex justify-between items-center p-3 rounded-xl bg-slate-50 text-sm">
-                        <span className="font-medium text-slate-600">Permintaan dari ID: {req.mentee_id.substring(0,8)}...</span>
-                        <span className={`font-bold uppercase text-[10px] px-2 py-1 rounded-md ${req.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                        {/* Menampilkan nama pengguna di riwayat */}
+                        <span className="font-medium text-slate-600 truncate mr-4">
+                          Permintaan dari <span className="font-bold">{req.mentee?.full_name || 'Pengguna Tidak Dikenal'}</span>
+                        </span>
+                        <span className={`shrink-0 font-bold uppercase text-[10px] px-2 py-1 rounded-md ${req.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                           {req.status}
                         </span>
                       </div>

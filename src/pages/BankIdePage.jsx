@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // Tambahkan ini untuk navigasi
+import { useNavigate } from 'react-router-dom';
 import { 
   Search, FileText, Trophy, Users, BookOpen, 
   Loader2, Plus, X, UploadCloud, ChevronLeft 
@@ -8,7 +8,7 @@ import Sidebar from '../components/layout/Sidebar';
 import { supabase } from '../api/supabase';
 
 export default function BankIdePage() {
-  const navigate = useNavigate(); // Hook untuk tombol back
+  const navigate = useNavigate();
   const [ideas, setIdeas] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,12 +34,37 @@ export default function BankIdePage() {
     "Agrikultur / Pangan"
   ];
 
+  // --- MODIFIKASI REALTIME DI SINI ---
   useEffect(() => {
+    // 1. Tarik data saat halaman pertama kali dibuka
     fetchIdeas();
+
+    // 2. Pasang sensor Realtime ke tabel 'bank_ide'
+    const channel = supabase
+      .channel('custom-all-channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bank_ide' },
+        (payload) => {
+          console.log('Ada perubahan data di Supabase!', payload);
+          // 3. Jika ada perubahan (Hapus/Tambah/Update), tarik data terbaru otomatis!
+          fetchIdeas();
+        }
+      )
+      .subscribe();
+
+    // Bersihkan koneksi sensor saat pindah halaman
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
+  // ------------------------------------
 
   const fetchIdeas = async () => {
-    setIsLoading(true);
+    // Supaya loading-nya tidak kedap-kedip saat realtime update, 
+    // kita set loading hanya jika data masih kosong
+    if (ideas.length === 0) setIsLoading(true); 
+    
     try {
       const { data, error } = await supabase
         .from('bank_ide')
@@ -99,7 +124,7 @@ export default function BankIdePage() {
       setShowUploadModal(false);
       setPdfFile(null);
       setUploadForm({ title: '', category: 'Teknologi / AI', summary: '', achievements: '', teamMembers: '' });
-      fetchIdeas();
+      // Hapus pemanggilan fetchIdeas() di sini karena sudah dihandle oleh Realtime
     } catch (error) {
       alert("Gagal: " + error.message);
     } finally {
@@ -187,11 +212,11 @@ export default function BankIdePage() {
                   <div className="space-y-3 mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100 text-sm">
                     <div className="flex items-start gap-3">
                       <Trophy className="text-yellow-500 shrink-0 mt-0.5" size={18} />
-                      <div><span className="block font-bold text-slate-700">Pencapaian:</span><span className="text-slate-600">{ide.achievements}</span></div>
+                      <div><span className="block font-bold text-slate-700">Pencapaian:</span><span className="text-slate-600">{ide.achievements || '-'}</span></div>
                     </div>
                     <div className="flex items-start gap-3">
                       <Users className="text-blue-500 shrink-0 mt-0.5" size={18} />
-                      <div><span className="block font-bold text-slate-700">Tim:</span><span className="text-slate-600">{ide.team_members?.join(', ')}</span></div>
+                      <div><span className="block font-bold text-slate-700">Tim:</span><span className="text-slate-600">{ide.team_members?.join(', ') || '-'}</span></div>
                     </div>
                   </div>
 
@@ -213,25 +238,40 @@ export default function BankIdePage() {
               <h2 className="text-xl font-black text-slate-900">Bagikan Karya/Proposal</h2>
               <button onClick={() => setShowUploadModal(false)} className="p-2 text-slate-400 hover:text-rose-500 rounded-full transition-colors"><X size={24} /></button>
             </div>
+            
             <form onSubmit={handleUploadSubmit} className="p-6 md:p-8 space-y-6">
-              {/* ... Isi form tetap sama ... */}
               <div className="space-y-4">
                  <input 
                   required type="text" placeholder="Judul Proposal"
                   value={uploadForm.title} onChange={(e) => setUploadForm({...uploadForm, title: e.target.value})}
                   className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
                 />
+                
                 <select 
                   value={uploadForm.category} onChange={(e) => setUploadForm({...uploadForm, category: e.target.value})}
                   className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
                 >
                   {categories.map((cat, i) => <option key={i} value={cat}>{cat}</option>)}
                 </select>
+                
                 <textarea 
                   required rows="3" placeholder="Ringkasan Ide"
                   value={uploadForm.summary} onChange={(e) => setUploadForm({...uploadForm, summary: e.target.value})}
                   className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none"
                 ></textarea>
+
+                <input 
+                  required type="text" placeholder="Anggota Tim (pisahkan dengan koma, misal: Rei, Budi)"
+                  value={uploadForm.teamMembers} onChange={(e) => setUploadForm({...uploadForm, teamMembers: e.target.value})}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                />
+
+                <input 
+                  type="text" placeholder="Pencapaian (Opsional, misal: Juara 1 Gemastik 2023)"
+                  value={uploadForm.achievements} onChange={(e) => setUploadForm({...uploadForm, achievements: e.target.value})}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                />
+
                 <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
                   <div className="flex flex-col items-center justify-center text-center px-4">
                     <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />
@@ -248,6 +288,7 @@ export default function BankIdePage() {
                 </button>
               </div>
             </form>
+
           </div>
         </div>
       )}
