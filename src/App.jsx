@@ -15,7 +15,6 @@ import MatchPage from './pages/MatchPage';
 import ConnectionsPage from './pages/ConnectionsPage'; 
 import ProfilePage from './pages/ProfilePage'; 
 import EditProfilePage from './pages/EditProfilePage';
-
 import NotificationsPage from './pages/NotificationsPage';
 import MentoringPage from './pages/MentoringPage';
 import ProfileDetailPage from './pages/ProfileDetailPage'; 
@@ -105,7 +104,6 @@ export default function App() {
         element={session ? (hasProfile ? <MatchPage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
       />
 
-      {/* 👇 UPDATE DI SINI (tambah onLogout={handleLogout}) 👇 */}
       <Route 
         path="/profile/:id" 
         element={session ? (hasProfile ? <ProfileDetailPage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
@@ -116,9 +114,10 @@ export default function App() {
         element={session ? (hasProfile ? <ConnectionsPage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
       />
 
+      {/* 👇 Ini sudah saya perbaiki supaya terlindungi (protected route) 👇 */}
       <Route 
         path="/edit-profile" 
-        element={<EditProfilePage />} 
+        element={session ? (hasProfile ? <EditProfilePage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
       />
 
       <Route 
@@ -126,19 +125,16 @@ export default function App() {
         element={session ? (hasProfile ? <ProfilePage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
       />
 
-      {/* 👇 UPDATE DI SINI (tambah onLogout={handleLogout}) 👇 */}
       <Route 
         path="/bank-ide" 
         element={session ? (hasProfile ? <BankIdePage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
       />
 
-      {/* 👇 UPDATE DI SINI (tambah onLogout={handleLogout}) 👇 */}
       <Route 
         path="/notifications" 
         element={session ? (hasProfile ? <NotificationsPage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
       />
 
-      {/* 👇 UPDATE DI SINI (tambah onLogout={handleLogout}) 👇 */}
       <Route 
         path="/mentoring" 
         element={session ? (hasProfile ? <MentoringPage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
