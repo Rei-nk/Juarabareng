@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trophy, ArrowRight, Sparkles } from 'lucide-react';
-// Saran: Ubah nama file di foldermu agar tidak menggunakan spasi
-import logoImage from '../../assets/logo.png'; 
+
+// Path sudah diperbaiki: Mundur satu folder ke 'src', lalu masuk ke 'assets'
+import logoImage from '../assets/logo.png'; 
 
 export default function LandingPage() {
   const navigate = useNavigate();
