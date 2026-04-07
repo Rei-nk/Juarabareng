@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Camera, Edit3, Share2, MapPin, GraduationCap, Link as LinkIcon, 
-  FileText, Trophy, Plus, Award, Code, Zap, Sparkles, User, Bell, Search, Menu, MessageSquare,
-  Loader2, LogOut, Image, CheckCircle, X, Star, BookOpen, Users
+  FileText, Trophy, Plus, Award, Zap, Sparkles, Loader2, Image, 
+  CheckCircle, X, Star, BookOpen, Users
 } from 'lucide-react';
 
-// 👇 Import Layout baru, HAPUS import Sidebar yang lama
+// Import Layout Pembungkus
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { supabase } from '../api/supabase';
 
@@ -49,7 +49,7 @@ export default function ProfilePage() {
       if (profileError) throw profileError;
       setProfile(profileData);
 
-      // 2. Ambil Jumlah Koneksi (Cepat karena hanya hitung baris)
+      // 2. Ambil Jumlah Koneksi
       const { count, error: countError } = await supabase
         .from('koneksi')
         .select('*', { count: 'exact', head: true })
@@ -154,7 +154,7 @@ export default function ProfilePage() {
     }
   };
 
-  // 👇 STATE 1: LOADING (Dibungkus Layout)
+  // --- TAMPILAN LOADING ---
   if (isLoading && !profile) {
     return (
       <DashboardLayout onLogout={handleLogout}>
@@ -166,6 +166,7 @@ export default function ProfilePage() {
     );
   }
 
+  // --- PERSIAPAN DATA PROFIL ---
   const fullName = profile?.full_name || 'Pengguna Juara';
   const username = profile?.username || fullName.split(' ')[0].toLowerCase();
   const title = profile?.title || 'Mahasiswa'; 
@@ -176,15 +177,13 @@ export default function ProfilePage() {
   const initial = fullName.charAt(0).toUpperCase();
   const bannerColor = profile?.banner_color || '#2563EB';
 
-  // 👇 STATE 2: BERHASIL (Dibungkus Layout)
+  // --- TAMPILAN UTAMA ---
   return (
     <DashboardLayout onLogout={handleLogout}>
       
-      {/* Jika komponen Topheader sudah diurus di dalam DashboardLayout, baris ini bisa kamu hapus nanti */}
-      <Topheader userInitials={initial} />
-
       <div className="p-4 md:p-6 lg:p-8 pb-24 max-w-5xl mx-auto space-y-6">
         
+        {/* Notifikasi Error */}
         {errorMsg && (
           <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl font-bold border border-rose-100 flex items-center justify-between">
             <span>{errorMsg}</span>
@@ -241,7 +240,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Detail Teks yang Telah Dirapikan */}
+            {/* Detail Teks */}
             <div>
               <div className="flex flex-col md:flex-row md:items-center gap-3 mb-1">
                 <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">{fullName}</h1>
@@ -508,7 +507,6 @@ export default function ProfilePage() {
       </div>
 
       {/* --- MODAL PENDAFTARAN MENTOR --- */}
-      {/* Modal sengaja ditaruh di dalam Layout supaya posisinya tetap overlay di tengah layar */}
       {showMentorModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
