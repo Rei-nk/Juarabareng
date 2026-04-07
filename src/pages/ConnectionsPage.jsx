@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Search, Send, ArrowLeft, MessageSquare, // Ditambahkan ArrowLeft
+  Search, Send, ArrowLeft, MessageSquare, 
   Loader2
 } from 'lucide-react';
-import Sidebar from '../components/layout/Sidebar';
+// 1. UBAH IMPORT: Ganti Sidebar menjadi DashboardLayout
+import DashboardLayout from '../components/layout/DashboardLayout';
 import { supabase } from '../api/supabase'; 
 
 export default function ConnectionsPage() {
@@ -166,23 +167,24 @@ export default function ConnectionsPage() {
     return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  // 2. RENDER DIUBAH: Menggunakan DashboardLayout
   return (
-    <div className="flex h-screen bg-[#F8FAFC] overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 flex flex-col p-4 md:p-6 h-full overflow-hidden">
-        <div className="mb-6 hidden md:flex items-center justify-between">
+    <DashboardLayout>
+      {/* Wrapper utama disesuaikan tingginya agar aman di Mobile (tersisa ruang untuk BottomNav) */}
+      <div className="w-full flex flex-col p-4 md:p-6 lg:p-8 h-[calc(100vh-5rem)] md:h-[calc(100vh-2rem)] pb-20 md:pb-6">
+        
+        <div className="mb-4 hidden md:flex items-center justify-between shrink-0">
           <div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">Koneksi & Pesan</h1>
             <p className="text-slate-500 font-medium mt-1">Bangun tim hebat melalui komunikasi intens.</p>
           </div>
         </div>
 
-        <div className="flex-1 bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-200 shadow-sm flex overflow-hidden">
+        <div className="flex-1 bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-200 shadow-sm flex overflow-hidden min-h-0">
           
           {/* SIDERBAR DAFTAR TEMAN (KIRI) */}
-          {/* Disembunyikan di Mobile jika sedang membuka chat */}
           <div className={`w-full md:w-80 lg:w-96 border-r border-slate-100 flex-col bg-white ${activeChat ? 'hidden md:flex' : 'flex'}`}>
-            <div className="p-5 border-b border-slate-50">
+            <div className="p-5 border-b border-slate-50 shrink-0">
               {/* Header Mobile Only */}
               <div className="md:hidden mb-4">
                 <h1 className="text-2xl font-black text-slate-900">Pesan</h1>
@@ -216,11 +218,11 @@ export default function ConnectionsPage() {
                         activeChat?.id === user.id ? 'bg-indigo-50' : 'hover:bg-slate-50'
                       }`}
                     >
-                      <img src={user.avatar} className="w-12 h-12 rounded-full object-cover" alt="" />
+                      <img src={user.avatar} className="w-12 h-12 rounded-full object-cover shrink-0" alt="" />
                       <div className="flex-1 min-w-0 text-left">
                         <div className="flex justify-between items-baseline">
                           <h3 className="font-bold text-slate-800 truncate text-sm">{user.name}</h3>
-                          <span className="text-[10px] text-slate-400">{formatTime(user.time)}</span>
+                          <span className="text-[10px] text-slate-400 shrink-0 ml-2">{formatTime(user.time)}</span>
                         </div>
                         <p className="text-xs text-slate-500 truncate mt-0.5">{user.lastMessage}</p>
                       </div>
@@ -231,11 +233,10 @@ export default function ConnectionsPage() {
           </div>
 
           {/* CHAT WINDOW (KANAN) */}
-          {/* Ditampilkan di Mobile HANYA jika ada activeChat */}
           <div className={`flex-1 flex-col bg-[#FDFDFF] relative ${!activeChat ? 'hidden md:flex' : 'flex'}`}>
             {activeChat ? (
               <>
-                <div className="h-20 px-4 md:px-6 bg-white border-b flex justify-between items-center shadow-sm">
+                <div className="h-20 px-4 md:px-6 bg-white border-b flex justify-between items-center shadow-sm shrink-0">
                   <div className="flex items-center gap-3">
                     {/* Tombol Back (Khusus Mobile) */}
                     <button 
@@ -245,7 +246,7 @@ export default function ConnectionsPage() {
                       <ArrowLeft size={20} />
                     </button>
                     
-                    <img src={activeChat.avatar} className="w-10 h-10 md:w-11 md:h-11 rounded-full object-cover" alt="" />
+                    <img src={activeChat.avatar} className="w-10 h-10 md:w-11 md:h-11 rounded-full object-cover shrink-0" alt="" />
                     <div>
                       <h2 className="font-bold text-slate-900 leading-none">{activeChat.name}</h2>
                       <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-1 inline-block">Member</span>
@@ -272,14 +273,14 @@ export default function ConnectionsPage() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                <form onSubmit={handleSendMessage} className="p-3 md:p-5 bg-white border-t flex items-center gap-2 md:gap-3">
+                <form onSubmit={handleSendMessage} className="p-3 md:p-5 bg-white border-t flex items-center gap-2 md:gap-3 shrink-0">
                   <input 
                     className="flex-1 bg-slate-50 border-none rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
                     placeholder="Tulis pesan..."
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                   />
-                  <button type="submit" className="p-3 bg-indigo-600 text-white rounded-xl shadow-lg hover:bg-indigo-700 transition-colors">
+                  <button type="submit" className="p-3 bg-indigo-600 text-white rounded-xl shadow-lg hover:bg-indigo-700 transition-colors shrink-0">
                     <Send size={18} />
                   </button>
                 </form>
@@ -295,7 +296,7 @@ export default function ConnectionsPage() {
             )}
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

@@ -8,7 +8,6 @@ import {
 
 // 👇 Import Layout baru, HAPUS import Sidebar yang lama
 import DashboardLayout from '../components/layout/DashboardLayout';
-import Topheader from '../components/Topheader';
 import { supabase } from '../api/supabase';
 
 export default function ProfilePage() {

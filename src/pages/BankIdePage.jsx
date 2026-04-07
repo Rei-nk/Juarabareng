@@ -4,7 +4,8 @@ import {
   Search, FileText, Trophy, Users, BookOpen, 
   Loader2, Plus, X, UploadCloud, ChevronLeft 
 } from 'lucide-react';
-import Sidebar from '../components/layout/Sidebar';
+// 1. IMPORT DIUBAH: Menggunakan DashboardLayout, bukan Sidebar
+import DashboardLayout from '../components/layout/DashboardLayout';
 import { supabase } from '../api/supabase';
 
 export default function BankIdePage() {
@@ -138,12 +139,10 @@ export default function BankIdePage() {
     (ide.category?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
+  // 2. RENDER DIUBAH: Menggunakan DashboardLayout sebagai pembungkus
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC] font-sans text-slate-900">
-      <Sidebar />
-
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 relative">
+    <DashboardLayout>
+      <div className="w-full p-4 md:p-6 lg:p-8 pb-24 relative">
         <div className="max-w-6xl mx-auto space-y-8">
           
           {/* Header Section */}
@@ -228,7 +227,7 @@ export default function BankIdePage() {
             </div>
           )}
         </div>
-      </main>
+      </div>
 
       {/* Modal Upload Ide */}
       {showUploadModal && (
@@ -292,6 +291,6 @@ export default function BankIdePage() {
           </div>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   );
 }
