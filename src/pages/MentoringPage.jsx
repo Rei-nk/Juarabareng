@@ -6,7 +6,10 @@ import { supabase } from '../api/supabase';
 export default function MentoringPage() {
   const [mentors, setMentors] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isBooking, setIsBooking] = useState(null); // Menyimpan ID mentor yang sedang di-booking
+  const [isBooking, setIsBooking] = useState(null);
+  
+  // 1. Tambahkan state untuk pencarian
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchMentors();
@@ -14,7 +17,6 @@ export default function MentoringPage() {
 
   const fetchMentors = async () => {
     try {
-      // Mengambil data user yang status is_mentor-nya TRUE
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -32,9 +34,9 @@ export default function MentoringPage() {
   const handleBooking = async (mentorId) => {
     try {
       setIsBooking(mentorId);
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
       
-      if (!user) {
+      if (authError || !user) {
         alert("Kamu harus login untuk melakukan booking!");
         return;
       }
@@ -44,7 +46,6 @@ export default function MentoringPage() {
         return;
       }
 
-      // Masukkan data ke tabel mentoring_requests
       const { error } = await supabase
         .from('mentoring_requests')
         .insert([
@@ -67,6 +68,15 @@ export default function MentoringPage() {
     }
   };
 
+  // 2. Logika untuk memfilter mentor berdasarkan input pencarian (Nama & Skill)
+  const filteredMentors = mentors.filter((mentor) => {
+    const name = (mentor.full_name || mentor.name || '').toLowerCase();
+    const skills = (mentor.mentor_specialties || []).join(' ').toLowerCase();
+    const query = searchQuery.toLowerCase();
+    
+    return name.includes(query) || skills.includes(query);
+  });
+
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] font-sans">
       <Sidebar />
@@ -83,12 +93,15 @@ export default function MentoringPage() {
               </p>
             </div>
             <div className="relative z-10 flex gap-2">
-              <div className="bg-slate-50 border border-slate-200 rounded-xl flex items-center px-4 py-2 w-full md:w-64">
-                <Search className="text-slate-400 w-5 h-5 mr-2" />
+              <div className="bg-slate-50 border border-slate-200 rounded-xl flex items-center px-4 py-2 w-full md:w-64 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
+                <Search className="text-slate-400 w-5 h-5 mr-2 shrink-0" />
+                {/* 3. Hubungkan input dengan state searchQuery */}
                 <input 
                   type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Cari mentor / skill..." 
-                  className="bg-transparent border-none outline-none text-sm w-full font-medium"
+                  className="bg-transparent border-none outline-none text-sm w-full font-medium text-slate-700"
                 />
               </div>
             </div>
@@ -100,15 +113,19 @@ export default function MentoringPage() {
               <Loader2 className="animate-spin text-blue-600 mb-4" size={40} />
               <p className="text-slate-500 font-bold animate-pulse">Mencari Mentor Terbaik...</p>
             </div>
-          ) : mentors.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-[2rem] border border-slate-100">
-              <p className="text-slate-500 font-bold mb-2">Belum ada mentor yang tersedia saat ini.</p>
-              <p className="text-sm text-slate-400">Coba ubah status akunmu menjadi mentor di database untuk testing!</p>
+          ) : filteredMentors.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-[2rem] border border-slate-100 shadow-sm">
+              <p className="text-slate-500 font-bold mb-2">
+                {searchQuery ? 'Tidak ada mentor yang cocok dengan pencarianmu.' : 'Belum ada mentor yang tersedia saat ini.'}
+              </p>
+              {!searchQuery && (
+                <p className="text-sm text-slate-400">Coba ubah status akunmu menjadi mentor di database untuk testing!</p>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {mentors.map((mentor) => {
-                // Siapkan fallback nama agar tidak error
+              {/* 4. Gunakan array filteredMentors untuk mapping, bukan mentors */}
+              {filteredMentors.map((mentor) => {
                 const mentorName = mentor.full_name || mentor.name || 'Mentor Anonim';
                 
                 return (
@@ -116,8 +133,6 @@ export default function MentoringPage() {
                     
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-4">
-                        
-                        {/* FOTO PROFIL (PERBAIKAN DISINI) */}
                         <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-inner overflow-hidden shrink-0">
                           {mentor.avatar_url || mentor.photo_url ? (
                             <img 
@@ -126,23 +141,22 @@ export default function MentoringPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            // Fallback inisial jika tidak ada foto
                             mentorName.charAt(0).toUpperCase()
                           )}
                         </div>
                         
                         <div>
                           <h3 className="font-bold text-lg text-slate-900 flex items-center gap-1">
-                            {mentorName}
-                            <ShieldCheck className="w-4 h-4 text-blue-500" />
+                            <span className="line-clamp-1">{mentorName}</span>
+                            <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0" />
                           </h3>
-                          <p className="text-xs font-black text-slate-400 uppercase tracking-wider">
+                          <p className="text-xs font-black text-slate-400 uppercase tracking-wider line-clamp-1">
                             {mentor.university || mentor.univ || 'Universitas'}
                           </p>
                         </div>
                       </div>
                       
-                      <div className="bg-amber-50 text-amber-600 px-2.5 py-1 rounded-lg flex items-center gap-1 text-sm font-bold border border-amber-100">
+                      <div className="bg-amber-50 text-amber-600 px-2.5 py-1 rounded-lg flex items-center gap-1 text-sm font-bold border border-amber-100 shrink-0">
                         <Star className="w-4 h-4 fill-amber-500" />
                         {mentor.mentor_rating || '5.0'}
                       </div>
@@ -168,7 +182,7 @@ export default function MentoringPage() {
                         <p className="text-xs font-bold text-slate-400 uppercase mb-1">Prestasi Tersorot</p>
                         <p className="text-sm font-medium text-slate-700 flex items-start gap-2">
                           <BookOpen className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                          {mentor.mentor_achievements || 'Juara 1 Gemastik UX Design 2023'}
+                          <span className="line-clamp-2">{mentor.mentor_achievements || 'Juara 1 Gemastik UX Design 2023'}</span>
                         </p>
                     </div>
 

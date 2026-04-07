@@ -34,36 +34,10 @@ export default function BankIdePage() {
     "Agrikultur / Pangan"
   ];
 
-  // --- MODIFIKASI REALTIME DI SINI ---
-  useEffect(() => {
-    // 1. Tarik data saat halaman pertama kali dibuka
-    fetchIdeas();
-
-    // 2. Pasang sensor Realtime ke tabel 'bank_ide'
-    const channel = supabase
-      .channel('custom-all-channel')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'bank_ide' },
-        (payload) => {
-          console.log('Ada perubahan data di Supabase!', payload);
-          // 3. Jika ada perubahan (Hapus/Tambah/Update), tarik data terbaru otomatis!
-          fetchIdeas();
-        }
-      )
-      .subscribe();
-
-    // Bersihkan koneksi sensor saat pindah halaman
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-  // ------------------------------------
-
-  const fetchIdeas = async () => {
-    // Supaya loading-nya tidak kedap-kedip saat realtime update, 
-    // kita set loading hanya jika data masih kosong
-    if (ideas.length === 0) setIsLoading(true); 
+  // --- MODIFIKASI REALTIME & FETCH ---
+  const fetchIdeas = async (isInitialLoad = false) => {
+    // Hanya nyalakan layar loading berputar jika ini adalah load pertama kali
+    if (isInitialLoad) setIsLoading(true); 
     
     try {
       const { data, error } = await supabase
@@ -76,9 +50,35 @@ export default function BankIdePage() {
     } catch (error) {
       console.error('Gagal mengambil data ide:', error.message);
     } finally {
-      setIsLoading(false);
+      // Matikan loading HANYA jika yang dinyalakan adalah loading inisial
+      if (isInitialLoad) setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    // 1. Tarik data saat halaman pertama kali dibuka (dengan spinner loading)
+    fetchIdeas(true);
+
+    // 2. Pasang sensor Realtime ke tabel 'bank_ide'
+    const channel = supabase
+      .channel('custom-all-channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bank_ide' },
+        (payload) => {
+          console.log('Ada perubahan data di Supabase!', payload);
+          // 3. Tarik data terbaru di background (TANPA spinner loading)
+          fetchIdeas(false);
+        }
+      )
+      .subscribe();
+
+    // Bersihkan koneksi sensor saat pindah halaman
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+  // ------------------------------------
 
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
@@ -124,7 +124,7 @@ export default function BankIdePage() {
       setShowUploadModal(false);
       setPdfFile(null);
       setUploadForm({ title: '', category: 'Teknologi / AI', summary: '', achievements: '', teamMembers: '' });
-      // Hapus pemanggilan fetchIdeas() di sini karena sudah dihandle oleh Realtime
+      // Hapus fetchIdeas() di sini karena Realtime otomatis mendeteksi insert
     } catch (error) {
       alert("Gagal: " + error.message);
     } finally {
@@ -132,9 +132,10 @@ export default function BankIdePage() {
     }
   };
 
+  // --- PERBAIKAN FITUR SEARCH ---
   const filteredIdeas = ideas.filter(ide => 
-    ide.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ide.category.toLowerCase().includes(searchTerm.toLowerCase())
+    (ide.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (ide.category?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -145,10 +146,9 @@ export default function BankIdePage() {
       <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 relative">
         <div className="max-w-6xl mx-auto space-y-8">
           
-          {/* Header Section dengan Tombol Back Manual */}
+          {/* Header Section */}
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
             <div className="max-w-2xl flex items-start gap-4">
-              {/* TOMBOL BACK MANUAL */}
               <button 
                 onClick={() => navigate(-1)} 
                 className="mt-1 p-2 bg-white border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 hover:text-blue-600 transition-all shadow-sm"

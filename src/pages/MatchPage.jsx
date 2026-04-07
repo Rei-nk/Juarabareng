@@ -13,7 +13,6 @@ export default function MatchPage() {
   // State Data User & Navigasi
   const [currentUser, setCurrentUser] = useState(null);
   const [profiles, setProfiles] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   
   // State UI (Match Animation)
@@ -24,20 +23,21 @@ export default function MatchPage() {
 
   // Fetch Data from Supabase on Load
   useEffect(() => {
+    let isMounted = true;
+
     const fetchProfiles = async () => {
       setLoading(true);
       try {
-        // 1. Dapatkan user yang sedang login
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError) throw authError;
         
         if (!user) {
-          setLoading(false);
+          if (isMounted) setLoading(false);
           return;
         }
-        setCurrentUser(user);
+        if (isMounted) setCurrentUser(user);
 
-        // 2. Ambil daftar koneksi yang sudah ada (pending, accepted, rejected)
+        // Ambil daftar koneksi yang sudah ada
         const { data: existingConnections, error: connError } = await supabase
           .from('koneksi')
           .select('user_id_1, user_id_2')
@@ -45,13 +45,13 @@ export default function MatchPage() {
 
         if (connError) throw connError;
 
-        // 3. Buat daftar ID yang harus diabaikan (Diri sendiri + orang yang sudah terkoneksi)
+        // Buat daftar ID yang harus diabaikan (Diri sendiri + orang yang sudah terkoneksi)
         const ignoredIds = [user.id]; 
         existingConnections.forEach(conn => {
           ignoredIds.push(conn.user_id_1 === user.id ? conn.user_id_2 : conn.user_id_1);
         });
 
-        // 4. Ambil profil, KECUALI yang ID-nya ada di daftar ignoredIds
+        // Ambil profil, KECUALI yang ID-nya ada di daftar ignoredIds
         const { data: profilesData, error: profError } = await supabase
           .from('profiles')
           .select('*')
@@ -59,49 +59,51 @@ export default function MatchPage() {
 
         if (profError) throw profError;
         
-        setProfiles(profilesData || []);
+        if (isMounted) setProfiles(profilesData || []);
       } catch (error) {
         console.error('Error fetching profiles:', error.message);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchProfiles();
-  }, []);
 
-  const currentProfile = profiles[currentIndex];
+    return () => { isMounted = false; };
+  }, []);
 
   // Filter profil berdasarkan kolom pencarian
   const filteredProfiles = profiles.filter(p => 
     (p.name || p.full_name || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
   
-  // Ambil profil yang benar-benar sedang tampil di layar
-  const displayProfile = searchTerm ? filteredProfiles[currentIndex] : currentProfile;
+  // Selalu ambil index 0 dari hasil filter (karena data yang sudah direview akan dihapus dari array)
+  const displayProfile = filteredProfiles[0];
+
+  // Fungsi untuk menghapus profil dari daftar setelah direview
+  const removeProfileFromStack = (profileId) => {
+    setProfiles(prev => prev.filter(p => p.id !== profileId));
+  };
 
   const handlePass = () => {
-    nextProfile();
+    if (!displayProfile) return;
+    removeProfileFromStack(displayProfile.id);
   };
 
   const handleConnect = async () => {
-    // PENTING: Gunakan displayProfile, bukan currentProfile agar search aman
     const targetProfile = displayProfile;
     
-    if (!currentUser || !targetProfile) return;
-    if (showMatchAnimation) return; // Cegah double click saat animasi berjalan
+    if (!currentUser || !targetProfile || showMatchAnimation) return;
 
     setShowMatchAnimation(true);
 
     try {
-      // SAFETY CHECK: Pastikan benar-benar belum ada koneksi di database (menghindari duplikasi)
       const { data: existingConnection } = await supabase
         .from('koneksi')
         .select('id')
         .or(`and(user_id_1.eq.${currentUser.id},user_id_2.eq.${targetProfile.id}),and(user_id_1.eq.${targetProfile.id},user_id_2.eq.${currentUser.id})`)
         .single();
 
-      // Jika ternyata belum ada koneksi, lakukan Insert
       if (!existingConnection) {
         const { error } = await supabase
           .from('koneksi')
@@ -118,39 +120,20 @@ export default function MatchPage() {
     } catch (error) {
       console.error("Gagal mengirim permintaan koneksi:", error.message);
     } finally {
-      // Pindah ke profil berikutnya setelah animasi selesai (1.2 detik)
       setTimeout(() => {
         setShowMatchAnimation(false);
-        nextProfile();
+        // Hapus profil dari tampilan setelah animasi selesai
+        removeProfileFromStack(targetProfile.id);
       }, 1200);
-    }
-  };
-
-  const nextProfile = () => {
-    if (searchTerm) {
-      // Jika sedang mode pencarian
-      if (currentIndex < filteredProfiles.length - 1) {
-        setCurrentIndex(prev => prev + 1);
-      } else {
-        // Hapus yang sudah di-pass/connect dari state utama
-        setProfiles(prev => prev.filter(p => p.id !== displayProfile.id));
-        setCurrentIndex(0);
-      }
-    } else {
-      // Jika mode normal
-      if (currentIndex < profiles.length - 1) {
-        setCurrentIndex(prev => prev + 1);
-      } else {
-        setProfiles([]); // Habis
-      }
     }
   };
 
   // Helper untuk menentukan icon berdasarkan role jika foto tidak ada
   const getRoleIcon = (role = '') => {
     if (!role) return <TrendingUp size={40} className="text-amber-500" />;
-    if (role.toLowerCase().includes('hacker')) return <Code size={40} className="text-blue-500" />;
-    if (role.toLowerCase().includes('hipster')) return <Palette size={40} className="text-pink-500" />;
+    const r = role.toLowerCase();
+    if (r.includes('hacker') || r.includes('developer')) return <Code size={40} className="text-blue-500" />;
+    if (r.includes('hipster') || r.includes('design')) return <Palette size={40} className="text-pink-500" />;
     return <TrendingUp size={40} className="text-amber-500" />;
   };
 
@@ -170,10 +153,7 @@ export default function MatchPage() {
               placeholder="Cari nama partner..."
               className="w-full bg-white border border-slate-100 rounded-3xl py-4 pl-14 pr-6 text-sm focus:ring-2 focus:ring-blue-500 shadow-sm transition-all outline-none"
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentIndex(0); // Reset index jika user mengetik pencarian baru
-              }}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
@@ -200,11 +180,11 @@ export default function MatchPage() {
                   <div className={`h-1/3 min-h-[160px] bg-gradient-to-br from-blue-500 to-indigo-600 relative flex items-center justify-center`}>
                     <div className="absolute inset-0 bg-black/10"></div>
                     
-                    <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-xl shadow-black/10 z-10 absolute -bottom-12 border-4 border-white overflow-hidden">
+                    <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-xl shadow-black/10 z-10 absolute -bottom-12 border-4 border-white overflow-hidden shrink-0">
                       {displayProfile.avatar_url || displayProfile.photo_url ? (
                         <img 
                           src={displayProfile.avatar_url || displayProfile.photo_url} 
-                          alt={displayProfile.name || "User Photo"} 
+                          alt={displayProfile.name || displayProfile.full_name || "User Photo"} 
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -262,12 +242,14 @@ export default function MatchPage() {
                 </div>
               </>
             ) : (
-              <div className="text-center p-10 flex-1 flex flex-col items-center justify-center">
+              <div className="text-center p-10 flex-1 flex flex-col items-center justify-center bg-white rounded-[3rem] border border-slate-100 shadow-sm">
                 <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-400">
                   <X size={30} />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900">Habis!</h3>
-                <p className="text-slate-500 text-sm">Tidak ada lagi profil baru yang tersedia.</p>
+                <p className="text-slate-500 text-sm mt-2">
+                  {searchTerm ? 'Tidak ada partner yang cocok dengan pencarianmu.' : 'Tidak ada lagi profil baru yang tersedia saat ini.'}
+                </p>
               </div>
             )}
           </div>

@@ -10,15 +10,29 @@ export default function NotificationsPage() {
 
   // 1. Inisialisasi User & Ambil Data Awal
   useEffect(() => {
+    let isMounted = true; // Mencegah state update jika komponen keburu di-unmount
+
     const initData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setCurrentUser(user);
-        await fetchConnectionRequests(user.id);
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        
+        if (user && isMounted) {
+          setCurrentUser(user);
+          await fetchConnectionRequests(user.id);
+        }
+      } catch (error) {
+        console.error('Gagal mengambil sesi user:', error.message);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
-      setIsLoading(false);
     };
+    
     initData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // 2. Fungsi Ambil Data dari Supabase
@@ -26,8 +40,7 @@ export default function NotificationsPage() {
     try {
       const { data, error } = await supabase
         .from('koneksi')
-        // Pastikan relasi ini benar di database kamu. 
-        // Jika nama tabel profilmu 'profiles', pastikan foreign key-nya nyambung.
+        // Pastikan relasi database sudah dikonfigurasi (foreign key dari user_id_1 ke tabel profiles)
         .select('*, pengirim:user_id_1 ( id, full_name )') 
         .eq('user_id_2', userId)
         .eq('status', 'pending')
@@ -36,7 +49,7 @@ export default function NotificationsPage() {
       if (error) throw error;
       setConnectionRequests(data || []);
     } catch (error) {
-      console.error('Error fetching connections:', error.message);
+      console.error('Error mengambil koneksi:', error.message);
     }
   };
 
@@ -49,16 +62,18 @@ export default function NotificationsPage() {
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
-        table: 'koneksi' 
+        table: 'koneksi',
+        // Opsional: Filter di level Supabase (hanya bekerja jika disetting di database)
+        // filter: `user_id_2=eq.${currentUser.id}` 
       }, (payload) => {
-        // Jika ada baris baru masuk, dan KITA adalah targetnya (user_id_2)
+        // Cek jika baris baru ditujukan untuk user ini dan statusnya pending
         if (payload.new.user_id_2 === currentUser.id && payload.new.status === 'pending') {
-          // Ambil ulang data agar nama 'pengirim' ikut ter-render
+          // Fetch ulang untuk mendapatkan data join relasi 'pengirim'
           fetchConnectionRequests(currentUser.id);
         }
       }).subscribe();
 
-    // Bersihkan listener jika user pindah halaman
+    // Bersihkan listener saat user pindah halaman / komponen unmount
     return () => {
       supabase.removeChannel(koneksiChannel);
     };
@@ -66,6 +81,10 @@ export default function NotificationsPage() {
 
   // 4. Handle Aksi (Terima / Tolak)
   const handleConnectionAction = async (connectionId, newStatus) => {
+    // Optimistic UI update: Sembunyikan dari UI terlebih dahulu agar terasa cepat
+    const previousRequests = [...connectionRequests];
+    setConnectionRequests(prev => prev.filter(req => req.id !== connectionId));
+
     try {
       const { error } = await supabase
         .from('koneksi')
@@ -74,12 +93,11 @@ export default function NotificationsPage() {
 
       if (error) throw error;
       
-      // Hapus dari layar jika sudah direspon (karena status bukan pending lagi)
-      setConnectionRequests(prev => prev.filter(req => req.id !== connectionId));
-      
     } catch (error) {
-      console.error('Gagal memproses koneksi:', error.message);
-      alert('Gagal memproses permintaan koneksi.');
+      // Rollback jika terjadi error di database
+      console.error(`Gagal memproses status ${newStatus}:`, error.message);
+      setConnectionRequests(previousRequests);
+      alert('Gagal memproses permintaan. Silakan coba lagi.');
     }
   };
 
@@ -137,12 +155,14 @@ export default function NotificationsPage() {
                           <button 
                             onClick={() => handleConnectionAction(req.id, 'rejected')} 
                             className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-colors font-bold flex items-center gap-2 text-sm"
+                            aria-label="Abaikan koneksi"
                           >
                             <XCircle size={18} /> Abaikan
                           </button>
                           <button 
                             onClick={() => handleConnectionAction(req.id, 'accepted')} 
                             className="px-4 py-2 bg-slate-800 hover:bg-black text-white rounded-xl transition-colors font-bold flex items-center gap-2 text-sm shadow-md"
+                            aria-label="Terima koneksi"
                           >
                             <CheckCircle size={18} /> Terima
                           </button>

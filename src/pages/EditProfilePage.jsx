@@ -20,7 +20,7 @@ export default function EditProfilePage() {
     skills: '', 
     banner_color: '#2563EB',
     portfolio_urls: [],
-    achievements: [] // STATE BARU UNTUK PENCAPAIAN
+    achievements: [] 
   });
 
   useEffect(() => {
@@ -51,7 +51,11 @@ export default function EditProfilePage() {
             skills: data.skills ? data.skills.join(', ') : '',
             banner_color: data.banner_color || '#2563EB',
             portfolio_urls: data.portfolio_urls || [],
-            achievements: data.achievements || [] // MUAT DATA PENCAPAIAN
+            // Tambahkan ID unik jika data dari DB belum memilikinya
+            achievements: (data.achievements || []).map(ach => ({
+              ...ach,
+              id: ach.id || crypto.randomUUID() 
+            }))
           });
         }
       } catch (err) {
@@ -67,7 +71,7 @@ export default function EditProfilePage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // --- FUNGSI GALERI PORTOFOLIO ---
+  // --- FUNGSI GALERI PORTOFOLIO (DIOPTIMALKAN) ---
   const handleUploadPortfolio = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -90,30 +94,53 @@ export default function EditProfilePage() {
     }
   };
 
-  const handleRemovePortfolio = (indexToRemove) => {
+  const handleRemovePortfolio = async (indexToRemove) => {
+    const urlToRemove = formData.portfolio_urls[indexToRemove];
+
+    // 1. Hapus dari UI State terlebih dahulu agar responsif
     setFormData(prev => ({
-      ...prev, portfolio_urls: prev.portfolio_urls.filter((_, index) => index !== indexToRemove)
+      ...prev, 
+      portfolio_urls: prev.portfolio_urls.filter((_, index) => index !== indexToRemove)
     }));
+
+    // 2. Ekstrak nama file dari URL dan hapus dari Supabase Storage
+    try {
+      // Mengambil nama file dari segment terakhir URL
+      const urlParts = urlToRemove.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+
+      // Abaikan jika ternyata URL tidak valid / kosong
+      if (fileName) {
+        const { error } = await supabase.storage.from('portfolio').remove([fileName]);
+        if (error) console.error("Gagal menghapus file di storage:", error.message);
+      }
+    } catch (err) {
+      console.error("Kesalahan saat menghapus dari storage:", err);
+    }
   };
 
-  // --- FUNGSI PENCAPAIAN (BARU) ---
+  // --- FUNGSI PENCAPAIAN (DIOPTIMALKAN) ---
   const handleAddAchievement = () => {
     setFormData(prev => ({
       ...prev,
-      achievements: [...prev.achievements, { title: '', description: '' }]
+      // Tambahkan ID unik untuk key React
+      achievements: [...prev.achievements, { id: crypto.randomUUID(), title: '', description: '' }]
     }));
   };
 
-  const handleAchievementChange = (index, field, value) => {
-    const newAchievements = [...formData.achievements];
-    newAchievements[index][field] = value;
-    setFormData({ ...formData, achievements: newAchievements });
-  };
-
-  const handleRemoveAchievement = (index) => {
+  const handleAchievementChange = (id, field, value) => {
     setFormData(prev => ({
       ...prev,
-      achievements: prev.achievements.filter((_, i) => i !== index)
+      achievements: prev.achievements.map(ach => 
+        ach.id === id ? { ...ach, [field]: value } : ach
+      )
+    }));
+  };
+
+  const handleRemoveAchievement = (id) => {
+    setFormData(prev => ({
+      ...prev,
+      achievements: prev.achievements.filter(ach => ach.id !== id)
     }));
   };
   // --------------------------------
@@ -130,7 +157,6 @@ export default function EditProfilePage() {
         .map(skill => skill.trim())
         .filter(skill => skill !== '');
 
-      // Pastikan achievement tidak ada yang kosong melompong sebelum disave
       const cleanedAchievements = formData.achievements.filter(
         ach => ach.title.trim() !== '' || ach.description.trim() !== ''
       );
@@ -149,7 +175,7 @@ export default function EditProfilePage() {
           skills: skillsArray,
           banner_color: formData.banner_color,
           portfolio_urls: formData.portfolio_urls,
-          achievements: cleanedAchievements, // SIMPAN PENCAPAIAN
+          achievements: cleanedAchievements,
           updated_at: new Date()
         });
 
@@ -223,7 +249,7 @@ export default function EditProfilePage() {
             <input type="url" name="github_link" value={formData.github_link} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </div>
 
-          {/* --- UI PENCAPAIAN & KOMPETISI (BARU) --- */}
+          {/* --- UI PENCAPAIAN & KOMPETISI --- */}
           <div className="pt-4 border-t border-slate-100">
             <div className="flex justify-between items-center mb-3">
               <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
@@ -236,25 +262,26 @@ export default function EditProfilePage() {
             </div>
 
             <div className="space-y-4">
-              {formData.achievements.map((ach, index) => (
-                <div key={index} className="flex gap-3 items-start bg-slate-50 p-4 rounded-xl border border-slate-200 relative group">
+              {/* Menggunakan ID unik sebagai Key React */}
+              {formData.achievements.map((ach) => (
+                <div key={ach.id} className="flex gap-3 items-start bg-slate-50 p-4 rounded-xl border border-slate-200 relative group">
                   <div className="flex-1 space-y-3">
                     <input 
                       type="text" 
                       placeholder="Contoh: Juara 1 UI/UX Design Nasional" 
                       value={ach.title} 
-                      onChange={(e) => handleAchievementChange(index, 'title', e.target.value)} 
+                      onChange={(e) => handleAchievementChange(ach.id, 'title', e.target.value)} 
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold outline-none focus:border-blue-500"
                     />
                     <input 
                       type="text" 
                       placeholder="Contoh: Diselenggarakan oleh Universitas X, Tahun 2023" 
                       value={ach.description} 
-                      onChange={(e) => handleAchievementChange(index, 'description', e.target.value)} 
+                      onChange={(e) => handleAchievementChange(ach.id, 'description', e.target.value)} 
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
                     />
                   </div>
-                  <button type="button" onClick={() => handleRemoveAchievement(index)} className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Hapus">
+                  <button type="button" onClick={() => handleRemoveAchievement(ach.id)} className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Hapus">
                     <Trash2 size={18} />
                   </button>
                 </div>

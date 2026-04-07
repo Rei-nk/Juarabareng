@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trophy, ArrowRight, Sparkles } from 'lucide-react';
-import logoImage from '../assets/logo juara bareng.png'; // Catatan: Ubah '.png' ke '.svg' atau '.jpg' jika ekstensinya berbeda
+// Saran: Ubah nama file di foldermu agar tidak menggunakan spasi
+import logoImage from '../assets/logo-juara-bareng.png'; 
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  
+  // State untuk menangani fallback logo
+  const [imgFailed, setImgFailed] = useState(false);
 
   useEffect(() => {
     // Memberikan efek loading singkat untuk kesan aplikasi premium
@@ -43,20 +47,19 @@ export default function LandingPage() {
         
         {/* LOGO AREA */}
         <div className="flex items-center">
-          <img 
-            src={logoImage} 
-            alt="Logo Juarabareng.id" 
-            className="h-8 md:h-10 w-auto object-contain"
-            onError={(e) => {
-              // Fallback: Jika gambar tidak ditemukan, sembunyikan img dan tampilkan teks
-              e.target.style.display = 'none';
-              e.target.nextSibling.style.display = 'block';
-            }}
-          />
-          {/* Teks Cadangan (Hanya muncul jika gambar gagal dimuat) */}
-          <div className="hidden text-2xl md:text-3xl font-black text-blue-600 tracking-tighter italic">
-            JUARABARENG.<span className="text-slate-900 font-bold">ID</span>
-          </div>
+          {!imgFailed ? (
+            <img 
+              src={logoImage} 
+              alt="Logo Juarabareng.id" 
+              className="h-8 md:h-10 w-auto object-contain"
+              onError={() => setImgFailed(true)} // Mengubah state jika gambar gagal dimuat
+            />
+          ) : (
+            // Teks Cadangan (Hanya muncul jika gambar gagal dimuat)
+            <div className="text-2xl md:text-3xl font-black text-blue-600 tracking-tighter italic">
+              JUARABARENG.<span className="text-slate-900 font-bold">ID</span>
+            </div>
+          )}
         </div>
         
         <button 
@@ -107,7 +110,7 @@ export default function LandingPage() {
           </button>
         </div>
 
-        {/* Social Proof (Hiasan) */}
+        {/* Social Proof */}
         <div className="mt-24 pt-10 border-t border-slate-100/60 w-full max-w-4xl flex flex-col items-center">
           <p className="text-xs font-bold text-slate-400 mb-6 uppercase tracking-widest">
             Dipercaya oleh Mahasiswa Dari

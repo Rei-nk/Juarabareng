@@ -70,9 +70,7 @@ export default function Sidebar({ onLogout }) {
       <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 sticky top-0 z-30">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
           <img src={myLogo} alt="Logo" className="h-7 w-auto" />
-          <span className="font-bold text-sm tracking-tighter uppercase text-slate-900">
-            JUARA<span className="text-blue-600">BARENG</span>
-          </span>
+          
         </div>
         <button 
           onClick={() => setIsOpen(!isOpen)}
@@ -102,7 +100,7 @@ export default function Sidebar({ onLogout }) {
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
             <img src={myLogo} alt="Logo" className="h-9 w-auto object-contain" />
             <span className="font-extrabold text-xl tracking-tighter text-slate-900 uppercase">
-              JUARA<span className="text-blue-600">BARENG</span>
+              
             </span>
           </div>
           <button 

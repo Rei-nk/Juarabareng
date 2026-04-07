@@ -27,13 +27,16 @@ export default function DirectoryPage({ onLogout }) {
     setLoading(false);
   };
 
+  // Perbaikan 1: Menutup kurung kurawal & kurung biasa pada fungsi filter dengan benar
   const filteredCompetitions = competitions.filter(comp => {
     const matchesSearch = comp.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           comp.organizer.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === "Semua Kategori" || comp.category === selectedCategory;
     return matchesSearch && matchesCategory;
+  }); 
 
-    const handleShowDetail = (comp) => {
+  // Perbaikan 2: Memastikan fungsi handler berada di luar blok render
+  const handleShowDetail = (comp) => {
     setSelectedCompForDetail(comp); // Set lomba yang dipilih
   };
 
@@ -41,43 +44,7 @@ export default function DirectoryPage({ onLogout }) {
     setSelectedCompForDetail(null); // Reset
   };
 
-  return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
-      <Sidebar onLogout={onLogout} activeTab="directory" />
-
-      <main className="flex-1 p-10">
-        <div className="max-w-6xl mx-auto">
-          {/* Header & Search Bar (Sama seperti sebelumnya) ... */}
-
-          {/* Grid Lomba */}
-          {loading ? (
-            <div className="text-center py-20 text-slate-400">Memuat data...</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCompetitions.map((comp) => (
-                <CompetitionCard 
-                  key={comp.id} 
-                  comp={comp} 
-                  onShowDetail={handleShowDetail} // OPER FUNGSI INI KE CARD
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
-
-      {/* --- RENDER MODAL JIKA ADA LOMBA YANG DIPILIH --- */}
-      {selectedCompForDetail && (
-        <CompetitionDetailModal 
-          comp={selectedCompForDetail} 
-          onClose={handleCloseDetail} 
-        />
-      )}
-    </div>
-  );
-  
-  });
-
+  // Perbaikan 3: Menggabungkan UI menjadi satu blok return yang utuh
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
       {/* activeTab="directory" supaya menu di sidebar nyala biru */}
@@ -85,6 +52,8 @@ export default function DirectoryPage({ onLogout }) {
 
       <main className="flex-1 p-10">
         <div className="max-w-6xl mx-auto">
+          
+          {/* Header & Search Bar */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
             <div>
               <h1 className="text-3xl font-bold text-slate-900 mb-2">Direktori Lomba</h1>
@@ -103,6 +72,7 @@ export default function DirectoryPage({ onLogout }) {
             </div>
           </div>
 
+          {/* Baris Filter & Kategori */}
           <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl border border-slate-100">
             <div className="text-sm font-semibold text-slate-600">
               Menampilkan <span className="text-blue-600">{filteredCompetitions.length}</span> Kompetisi
@@ -121,17 +91,30 @@ export default function DirectoryPage({ onLogout }) {
             </select>
           </div>
 
+          {/* Grid Lomba */}
           {loading ? (
             <div className="text-center py-20 text-slate-400">Memuat data...</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredCompetitions.map((comp) => (
-                <CompetitionCard key={comp.id} comp={comp} />
+                <CompetitionCard 
+                  key={comp.id} 
+                  comp={comp} 
+                  onShowDetail={handleShowDetail} // Props dioper dengan benar
+                />
               ))}
             </div>
           )}
         </div>
       </main>
+
+      {/* --- RENDER MODAL JIKA ADA LOMBA YANG DIPILIH --- */}
+      {selectedCompForDetail && (
+        <CompetitionDetailModal 
+          comp={selectedCompForDetail} 
+          onClose={handleCloseDetail} 
+        />
+      )}
     </div>
   );
 }
