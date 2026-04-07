@@ -6,7 +6,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../api/supabase';
 // PASTIKAN IMPORT INI BENAR
-import myLogo from '../assets/logo-bawah.png';
+import myLogo from '../../assets/logo juara bareng.png';
 
 export default function Sidebar({ onLogout }) {
   const navigate = useNavigate();
