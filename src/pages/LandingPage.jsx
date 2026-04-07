@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trophy, ArrowRight, Sparkles } from 'lucide-react';
 // Saran: Ubah nama file di foldermu agar tidak menggunakan spasi
-import logoImage from '../assets/logo-juara-bareng.png'; 
+import logoImage from '../../assets/logo-juara-bareng.png'; 
 
 export default function LandingPage() {
   const navigate = useNavigate();
