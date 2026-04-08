@@ -4,7 +4,7 @@ import {
   Loader2
 } from 'lucide-react';
 // 1. UBAH IMPORT: Ganti Sidebar menjadi DashboardLayout
-import DashboardLayout from '../components/layout/DashboardLayout';
+
 import { supabase } from '../api/supabase'; 
 
 export default function ConnectionsPage() {

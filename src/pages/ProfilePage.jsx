@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 // Import Layout Pembungkus
-import DashboardLayout from '../components/layout/DashboardLayout';
+
 import { supabase } from '../api/supabase';
 
 export default function ProfilePage() {

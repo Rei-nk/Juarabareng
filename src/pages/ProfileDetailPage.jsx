@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../api/supabase'; 
 // 👇 Import DashboardLayout (pastikan path-nya benar)
-import DashboardLayout from '../components/layout/DashboardLayout';
+
 import { 
   ArrowLeft, GraduationCap, Mail, 
   Briefcase, Code, Palette, TrendingUp, Loader2, Award

@@ -5,7 +5,6 @@ import {
   Loader2, Plus, X, UploadCloud, ChevronLeft 
 } from 'lucide-react';
 // 1. IMPORT DIUBAH: Menggunakan DashboardLayout, bukan Sidebar
-import DashboardLayout from '../components/layout/DashboardLayout';
 import { supabase } from '../api/supabase';
 
 export default function BankIdePage() {
