@@ -66,18 +66,33 @@ export default function Sidebar({ onLogout }) {
 
   return (
     <>
-      {/* MOBILE HEADER (Hanya muncul di layar HP) */}
+      {/* --- MOBILE HEADER (Hanya muncul di layar HP) --- */}
       <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 sticky top-0 z-30">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
           <img src={myLogo} alt="Logo" className="h-7 w-auto" />
-          
         </div>
-        <button 
-          onClick={() => setIsOpen(!isOpen)}
-          className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:text-blue-600 transition-colors"
-        >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        
+        {/* Kontainer Kanan Mobile: Notifikasi + Hamburger */}
+        <div className="flex items-center gap-3">
+          {/* Tombol Notifikasi Mobile */}
+          <button 
+            onClick={() => navigate('/notifications')} 
+            className={`relative p-2 rounded-lg transition-all ${
+              location.pathname === '/notifications' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:text-blue-600 hover:bg-slate-50'
+            }`}
+          >
+            <Bell size={22} />
+            {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse" />}
+          </button>
+
+          {/* Hamburger Menu */}
+          <button 
+            onClick={() => setIsOpen(!isOpen)}
+            className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:text-blue-600 transition-colors"
+          >
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* OVERLAY (Background gelap saat menu mobile buka) */}
@@ -99,10 +114,8 @@ export default function Sidebar({ onLogout }) {
         <div className="p-6 border-b border-slate-100 hidden lg:flex items-center justify-between h-20">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
             <img src={myLogo} alt="Logo" className="h-9 w-auto object-contain" />
-            <span className="font-extrabold text-xl tracking-tighter text-slate-900 uppercase">
-              
-            </span>
           </div>
+          {/* Tombol Notifikasi Desktop */}
           <button 
             onClick={() => navigate('/notifications')} 
             className={`relative p-2 rounded-xl transition-all ${

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ArrowLeft, ShieldAlert, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Loader2, ArrowLeft, ShieldCheck, Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
 import { supabase } from '../api/supabase';
 
 export default function LoginPage() {
@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
-  // State baru untuk menangani error gambar secara 'React Way'
+  // State untuk menangani error gambar
   const [imgFailed, setImgFailed] = useState(false);
 
   const handleLogin = async (e) => {
@@ -35,10 +35,9 @@ export default function LoginPage() {
           .eq('id', data.session.user.id)
           .single();
 
-        // Tangani error secara spesifik. 
-        // PGRST116 artinya: Result contains 0 rows (User baru belum isi profile)
+        // PGRST116: Result contains 0 rows (User baru belum isi profile)
         if (profileError && profileError.code !== 'PGRST116') {
-           throw profileError; // Jika error lain (misal jaringan putus), lempar ke catch
+           throw profileError; 
         }
 
         if (profile?.university) {
@@ -54,7 +53,7 @@ export default function LoginPage() {
       if (error.message.includes('Invalid login credentials')) {
         setErrorMsg('Email atau password salah. Silakan periksa kembali.');
       } else if (error.message.includes('Email not confirmed')) {
-        setErrorMsg('Email Anda belum dikonfirmasi. Pastikan pengaturan "Confirm Email" di Supabase sudah dimatikan.');
+        setErrorMsg('Email Anda belum dikonfirmasi. Cek kotak masuk Anda.');
       } else {
         setErrorMsg(error.message);
       }
@@ -64,29 +63,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FDFDFF] p-6 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 py-8 relative overflow-hidden font-sans">
       
       {/* Dekorasi Latar Belakang */}
-      <div className="absolute top-[-10%] left-[-5%] w-96 h-96 bg-blue-100/50 rounded-full blur-[100px] -z-10" />
-      <div className="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-indigo-100/50 rounded-full blur-[100px] -z-10" />
+      <div className="absolute top-[-10%] left-[-5%] w-96 h-96 bg-blue-100/50 rounded-full blur-[100px] -z-10 pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-indigo-100/50 rounded-full blur-[100px] -z-10 pointer-events-none" />
 
-      {/* Tombol Kembali */}
-      <button 
-        onClick={() => navigate('/')}
-        className="absolute top-8 left-8 p-3 bg-white border-2 border-slate-100 rounded-full text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all z-10 shadow-sm"
-      >
-        <ArrowLeft size={20} />
-      </button>
-
-      <div className="bg-white/80 backdrop-blur-xl max-w-md w-full p-10 rounded-[3rem] shadow-2xl shadow-blue-900/5 border border-white">
+      <div className="bg-white max-w-md w-full p-6 md:p-8 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 relative z-10">
         
+        {/* Tombol Kembali */}
+        <button 
+          onClick={() => navigate('/')}
+          className="text-slate-400 hover:text-slate-800 mb-6 flex items-center gap-2 text-sm font-bold transition-colors w-fit"
+        >
+          <ArrowLeft size={16} /> Kembali
+        </button>
+
         {/* HEADER SECTION */}
-        <div className="text-center mb-10">
-          <div className="flex justify-center mb-6">
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-5">
             <div className="relative group mx-auto">
               <div className="absolute inset-0 bg-blue-500 blur-xl opacity-20 rounded-2xl group-hover:opacity-30 transition-opacity"></div>
               
-              {/* Conditional rendering gambar / icon fallback */}
               {!imgFailed ? (
                 <img 
                   src="/src/assets/logo.png"
@@ -102,61 +100,71 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <h2 className="text-3xl font-black text-slate-900 tracking-tighter mb-2">Selamat Datang</h2>
-          <p className="text-slate-500 font-medium text-sm">Masuk untuk mencari tim juaramu.</p>
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight mb-2">Selamat Datang 👋</h2>
+          <p className="text-slate-500 text-sm font-medium">Masuk untuk melanjutkan dan mencari tim juaramu.</p>
         </div>
 
+        {/* Pesan Error */}
         {errorMsg && (
-          <div className="mb-6 p-4 bg-rose-50 text-rose-600 rounded-2xl text-xs font-bold border border-rose-100 flex items-center gap-3">
-            <div className="shrink-0 w-2 h-2 bg-rose-500 rounded-full animate-ping" />
-            {errorMsg}
+          <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-sm font-medium mb-6 flex items-start gap-3 border border-red-100">
+            <AlertCircle className="shrink-0 mt-0.5" size={18} />
+            <span>{errorMsg}</span>
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Alamat Email</label>
-            <input 
-              type="email" 
-              required
-              placeholder="nama@email.com" 
-              className="w-full p-4 bg-slate-50 border-2 border-slate-50 rounded-2xl outline-none focus:border-blue-500 focus:bg-white font-bold text-slate-700 transition-all" 
-              value={email} 
-              onChange={e => setEmail(e.target.value)} 
-            />
+        <form onSubmit={handleLogin} className="space-y-4">
+          
+          {/* Email */}
+          <div>
+            <label className="block text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Alamat Email</label>
+            <div className="relative group">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+              <input 
+                type="email" 
+                required
+                placeholder="nama@email.com" 
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
+                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-between items-center ml-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Kata Sandi</label>
-              <button type="button" className="text-[10px] font-bold text-blue-600 hover:underline">Lupa Sandi?</button>
+          {/* Password */}
+          <div>
+            <div className="flex justify-between items-center mb-1.5">
+              <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">Kata Sandi</label>
+              <button type="button" className="text-[10px] md:text-xs font-bold text-blue-600 hover:underline hover:text-blue-700 transition-colors">
+                Lupa Sandi?
+              </button>
             </div>
             
-            <div className="relative">
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
               <input 
                 type={showPassword ? "text" : "password"} 
                 required
                 placeholder="••••••••" 
-                // Dinamis tracking class agar teks tidak renggang saat showPassword = true
-                className={`w-full p-4 pr-12 bg-slate-50 border-2 border-slate-50 rounded-2xl outline-none focus:border-blue-500 focus:bg-white font-bold text-slate-700 transition-all ${showPassword ? 'tracking-normal' : 'tracking-widest'}`} 
                 value={password} 
                 onChange={e => setPassword(e.target.value)} 
+                className={`w-full pl-11 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${showPassword ? 'tracking-normal' : 'tracking-widest'}`}
               />
               <button 
                 type="button" 
                 onClick={() => setShowPassword(!showPassword)} 
-                className="absolute right-4 top-4 text-slate-400 hover:text-blue-600 transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 title={showPassword ? "Sembunyikan password" : "Tampilkan password"}
               >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
 
+          {/* Tombol Submit */}
           <button 
             type="submit" 
             disabled={isLoading}
-            className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black hover:bg-blue-600 transition-all shadow-xl shadow-slate-200 mt-4 flex justify-center items-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full mt-6 bg-slate-900 text-white px-6 py-3.5 md:py-4 rounded-xl font-bold hover:bg-blue-600 transition-all shadow-md shadow-slate-200 active:scale-[0.98] flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <>
@@ -169,10 +177,10 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-10 pt-8 border-t border-slate-50 text-center">
-          <p className="text-sm font-bold text-slate-400">
+        <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+          <p className="text-sm font-medium text-slate-500">
             Belum punya akun?{' '}
-            <button onClick={() => navigate('/register')} className="text-blue-600 hover:underline">
+            <button onClick={() => navigate('/register')} className="text-blue-600 font-bold hover:underline hover:text-blue-700 transition-colors">
               Daftar Gratis
             </button>
           </p>

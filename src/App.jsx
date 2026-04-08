@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy } from 'lucide-react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-// Pastikan path supabase ini sesuai dengan strukturmu
 import { supabase } from './api/supabase'; 
+
+// --- IMPORTS LAYOUT & PAGES ---
+import DashboardLayout from './components/DashboardLayout'; // Pastikan path ini sesuai!
 
 import BankIdePage from './pages/BankIdePage';
 import LandingPage from './pages/LandingPage';
@@ -81,6 +83,19 @@ export default function App() {
     );
   }
 
+  // 👇 HELPER COMPONENT: Agar kode routing tidak berulang-ulang
+  // Komponen ini otomatis mengecek login, mengecek profil, dan membungkus halaman dengan DashboardLayout
+  const ProtectedRoute = ({ children }) => {
+    if (!session) return <Navigate to="/login" replace />;
+    if (!hasProfile) return <Navigate to="/onboarding" replace />;
+    
+    return (
+      <DashboardLayout onLogout={handleLogout}>
+        {children}
+      </DashboardLayout>
+    );
+  };
+
   return (
     <Routes>
       {/* --- RUTE PUBLIK --- */}
@@ -88,64 +103,25 @@ export default function App() {
       <Route path="/login" element={!session ? <LoginPage /> : <Navigate to={hasProfile ? "/feed" : "/onboarding"} replace />} />
       <Route path="/register" element={!session ? <RegisterPage /> : <Navigate to="/onboarding" replace />} />
 
-      {/* --- RUTE TERPROTEKSI (Harus Login & Punya Profil) --- */}
-      <Route 
-        path="/feed" 
-        element={session ? (hasProfile ? <FeedPage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
-      />
-      
-      <Route 
-        path="/directory" 
-        element={session ? (hasProfile ? <DirectoryPage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
-      />
-
-      <Route 
-        path="/match" 
-        element={session ? (hasProfile ? <MatchPage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
-      />
-
-      <Route 
-        path="/profile/:id" 
-        element={session ? (hasProfile ? <ProfileDetailPage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
-      />
-
-      <Route 
-        path="/connections" 
-        element={session ? (hasProfile ? <ConnectionsPage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
-      />
-
-      {/* 👇 Ini sudah saya perbaiki supaya terlindungi (protected route) 👇 */}
-      <Route 
-        path="/edit-profile" 
-        element={session ? (hasProfile ? <EditProfilePage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
-      />
-
-      <Route 
-        path="/profile" 
-        element={session ? (hasProfile ? <ProfilePage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
-      />
-
-      <Route 
-        path="/bank-ide" 
-        element={session ? (hasProfile ? <BankIdePage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
-      />
-
-      <Route 
-        path="/notifications" 
-        element={session ? (hasProfile ? <NotificationsPage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
-      />
-
-      <Route 
-        path="/mentoring" 
-        element={session ? (hasProfile ? <MentoringPage onLogout={handleLogout} /> : <Navigate to="/onboarding" replace />) : <Navigate to="/login" replace />} 
-      />
-
-      {/* --- RUTE ONBOARDING (Harus Login TAPI Belum Punya Profil) --- */}
+      {/* --- RUTE ONBOARDING (Khusus: Harus Login tapi Belum Punya Profil. TIDAK pakai Sidebar) --- */}
       <Route 
         path="/onboarding" 
         element={session ? (!hasProfile ? <OnboardingPage onFinish={() => setHasProfile(true)} /> : <Navigate to="/feed" replace />) : <Navigate to="/login" replace />} 
       />
 
+      {/* --- RUTE TERPROTEKSI (Pakai DashboardLayout / Sidebar) --- */}
+      <Route path="/feed" element={<ProtectedRoute><FeedPage /></ProtectedRoute>} />
+      <Route path="/directory" element={<ProtectedRoute><DirectoryPage /></ProtectedRoute>} />
+      <Route path="/match" element={<ProtectedRoute><MatchPage /></ProtectedRoute>} />
+      <Route path="/connections" element={<ProtectedRoute><ConnectionsPage /></ProtectedRoute>} />
+      <Route path="/edit-profile" element={<ProtectedRoute><EditProfilePage /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+      <Route path="/profile/:id" element={<ProtectedRoute><ProfileDetailPage /></ProtectedRoute>} />
+      <Route path="/bank-ide" element={<ProtectedRoute><BankIdePage /></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+      <Route path="/mentoring" element={<ProtectedRoute><MentoringPage /></ProtectedRoute>} />
+
+      {/* Rute Catch-All */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
