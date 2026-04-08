@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../api/supabase';
-import Sidebar from '../components/layout/Sidebar';
 import { 
   X, Heart, GraduationCap, Code, Palette, 
   TrendingUp, Loader2, Search, FileText, Filter 
@@ -154,7 +153,6 @@ export default function MatchPage() {
     // Penyesuaian flex-col di mobile, flex-row di layar besar
     <div className="min-h-screen bg-slate-50/50 flex flex-col md:flex-row font-sans">
       
-      <Sidebar />
 
       {/* Konten Utama */}
       <main className="flex-1 p-4 md:p-8 flex flex-col items-center overflow-x-hidden pb-24 md:pb-8">

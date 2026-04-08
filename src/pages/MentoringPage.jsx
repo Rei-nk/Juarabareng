@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Clock, BookOpen, ShieldCheck, Search, Loader2 } from 'lucide-react';
-import Sidebar from '../components/layout/Sidebar';
 import { supabase } from '../api/supabase';
 
 export default function MentoringPage() {
@@ -80,8 +79,6 @@ export default function MentoringPage() {
     // Struktur flex-col untuk Mobile, flex-row untuk Desktop
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
       
-      {/* Tambahkan activeTab agar menu aktif menyala biru (jika props ini ada di Sidebar-mu) */}
-      <Sidebar activeTab="mentoring" />
 
       {/* Main Content dengan padding responsif & pb-24 untuk ruang navbar mobile */}
       <main className="flex-1 p-4 md:p-8 lg:p-10 overflow-x-hidden pb-24 md:pb-10">

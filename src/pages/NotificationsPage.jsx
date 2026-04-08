@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, CheckCircle, XCircle, Loader2, User, Users } from 'lucide-react';
-import Sidebar from '../components/layout/Sidebar';
 import { supabase } from '../api/supabase';
 
 export default function NotificationsPage() {
@@ -103,7 +102,6 @@ export default function NotificationsPage() {
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] font-sans">
-      <Sidebar />
 
       <main className="flex-1 overflow-y-auto p-4 md:p-8">
         <div className="max-w-3xl mx-auto space-y-8">

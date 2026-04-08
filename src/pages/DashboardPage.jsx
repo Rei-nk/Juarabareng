@@ -2,13 +2,11 @@ import React, { useState } from 'react';
 import { LayoutDashboard, Search, Bell, MessageSquare, Sparkles, Menu, X, User } from 'lucide-react';
 
 export default function DashboardPage() {
-  // State untuk mengontrol sidebar di tampilan mobile
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans overflow-hidden">
       
-      {/* Sidebar - Desktop (Tetap sama) & Mobile (Absolute/Fixed) */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200 p-8 flex flex-col transition-transform duration-300 ease-in-out
         lg:relative lg:translate-x-0
@@ -18,7 +16,6 @@ export default function DashboardPage() {
           <div className="font-black text-2xl italic tracking-tighter text-blue-700">
             JUARA<span className="text-amber-500">BARENG</span>
           </div>
-          {/* Tombol tutup sidebar khusus mobile */}
           <button 
             className="lg:hidden text-slate-400 hover:text-slate-600"
             onClick={() => setIsMobileMenuOpen(false)}
@@ -37,7 +34,6 @@ export default function DashboardPage() {
         </nav>
       </aside>
 
-      {/* Overlay untuk Mobile (Menutup sidebar jika area luar diklik) */}
       {isMobileMenuOpen && (
         <div 
           className="fixed inset-0 bg-slate-900/20 z-40 lg:hidden"

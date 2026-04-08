@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../components/layout/Sidebar';
 import CompetitionCard from '../components/Directory/CompetitionCard';
 import { supabase } from '../api/supabase';
 import { Search, Loader2 } from 'lucide-react';
@@ -56,7 +55,6 @@ export default function DirectoryPage({ onLogout }) {
     // Struktur flex-col untuk Mobile, flex-row untuk Desktop
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
       
-      <Sidebar onLogout={onLogout} activeTab="directory" />
 
       {/* Main Content dengan padding responsif & pb-24 untuk ruang navbar mobile */}
       <main className="flex-1 p-4 md:p-8 lg:p-10 overflow-x-hidden pb-24 md:pb-10">

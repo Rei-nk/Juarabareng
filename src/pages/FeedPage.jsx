@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 // Pastikan path import ini benar sesuai folder kamu
-import Sidebar from '../components/layout/Sidebar'; 
+ 
 import CreatePostForm from '../components/Feed/CreatePostForm';
 import PostCard from '../components/Feed/PostCard';
 import { supabase } from '../api/supabase';
@@ -39,9 +39,6 @@ export default function FeedPage({ onLogout }) {
     // 👇 INI YANG SAYA UBAH BOS: Tambah flex-col lg:flex-row dan w-full 👇
     <div className="flex flex-col lg:flex-row min-h-screen bg-[#F8FAFC] w-full font-sans">
       
-      {/* Sidebar tetap di kiri (saat desktop) / jadi header (saat HP) */}
-      <Sidebar onLogout={onLogout} activeTab="feed" />
-
       {/* 👇 INI JUGA SAYA UBAH: Tambah w-full lg:w-auto dan overflow 👇 */}
       <main className="flex-1 w-full lg:w-auto overflow-y-auto min-h-screen">
         

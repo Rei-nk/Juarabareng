@@ -4,7 +4,6 @@ import {
   Search, FileText, Trophy, Users, BookOpen, 
   Loader2, Plus, X, UploadCloud, ChevronLeft 
 } from 'lucide-react';
-// 1. IMPORT DIUBAH: Menggunakan DashboardLayout, bukan Sidebar
 import { supabase } from '../api/supabase';
 
 export default function BankIdePage() {
