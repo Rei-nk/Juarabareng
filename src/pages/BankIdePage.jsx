@@ -137,9 +137,9 @@ export default function BankIdePage() {
     (ide.category?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
-  // 2. RENDER DIUBAH: Menggunakan DashboardLayout sebagai pembungkus
+  // 2. RENDER DIUBAH: Dihapus DashboardLayout-nya agar tidak dobel
   return (
-    <DashboardLayout>
+    <>
       <div className="w-full p-4 md:p-6 lg:p-8 pb-24 relative">
         <div className="max-w-6xl mx-auto space-y-8">
           
@@ -289,6 +289,6 @@ export default function BankIdePage() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }

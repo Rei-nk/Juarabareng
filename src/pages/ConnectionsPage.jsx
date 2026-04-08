@@ -166,9 +166,9 @@ export default function ConnectionsPage() {
     return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // 2. RENDER DIUBAH: Menggunakan DashboardLayout
+  // RENDER DIUBAH: Dihapus DashboardLayout-nya agar tidak dobel
   return (
-    <DashboardLayout>
+    <>
       {/* Wrapper utama disesuaikan tingginya agar aman di Mobile (tersisa ruang untuk BottomNav) */}
       <div className="w-full flex flex-col p-4 md:p-6 lg:p-8 h-[calc(100vh-5rem)] md:h-[calc(100vh-2rem)] pb-20 md:pb-6">
         
@@ -296,6 +296,6 @@ export default function ConnectionsPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

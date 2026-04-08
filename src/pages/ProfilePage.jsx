@@ -6,8 +6,6 @@ import {
   CheckCircle, X, Star, BookOpen, Users
 } from 'lucide-react';
 
-// Import Layout Pembungkus
-
 import { supabase } from '../api/supabase';
 
 export default function ProfilePage() {
@@ -157,12 +155,12 @@ export default function ProfilePage() {
   // --- TAMPILAN LOADING ---
   if (isLoading && !profile) {
     return (
-      <DashboardLayout onLogout={handleLogout}>
+      <>
         <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4">
           <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
           <p className="text-slate-500 font-bold">Memuat profilmu...</p>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
@@ -179,8 +177,7 @@ export default function ProfilePage() {
 
   // --- TAMPILAN UTAMA ---
   return (
-    <DashboardLayout onLogout={handleLogout}>
-      
+    <>
       <div className="p-4 md:p-6 lg:p-8 pb-24 max-w-5xl mx-auto space-y-6">
         
         {/* Notifikasi Error */}
@@ -557,7 +554,6 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
-
-    </DashboardLayout>
+    </>
   );
 }

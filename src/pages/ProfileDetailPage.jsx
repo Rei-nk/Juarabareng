@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../api/supabase'; 
-// 👇 Import DashboardLayout (pastikan path-nya benar)
 
 import { 
   ArrowLeft, GraduationCap, Mail, 
   Briefcase, Code, Palette, TrendingUp, Loader2, Award
 } from 'lucide-react';
 
-// Tambahkan prop onLogout kalau nanti dipassing dari App.jsx
-export default function ProfileDetailPage({ onLogout }) {
+export default function ProfileDetailPage() {
   const { id } = useParams(); 
   const navigate = useNavigate();
   
@@ -18,6 +16,12 @@ export default function ProfileDetailPage({ onLogout }) {
 
   useEffect(() => {
     const fetchProfileDetail = async () => {
+      // Mencegah fetch jika tidak ada ID dari parameter
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         const { data, error } = await supabase
@@ -30,12 +34,13 @@ export default function ProfileDetailPage({ onLogout }) {
         setProfile(data);
       } catch (error) {
         console.error('Error fetching profile detail:', error.message);
+        // Jika gagal, setProfile dibiarkan null agar memicu tampilan "Tidak Ditemukan"
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) fetchProfileDetail();
+    fetchProfileDetail();
   }, [id]);
 
   const getRoleIcon = (role = '') => {
@@ -56,25 +61,25 @@ export default function ProfileDetailPage({ onLogout }) {
   // 👇 STATE 1: LOADING
   if (loading) {
     return (
-      <DashboardLayout onLogout={onLogout}>
-        <div className="flex items-center justify-center min-h-[80vh]">
-          <Loader2 className="animate-spin text-blue-600" size={48} />
-        </div>
-      </DashboardLayout>
+      <div className="flex items-center justify-center min-h-[80vh]">
+        <Loader2 className="animate-spin text-blue-600" size={48} />
+      </div>
     );
   }
 
   // 👇 STATE 2: ERROR / TIDAK DITEMUKAN
   if (!profile) {
     return (
-      <DashboardLayout onLogout={onLogout}>
-        <div className="flex flex-col items-center justify-center text-center p-6 min-h-[80vh]">
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Profil Tidak Ditemukan</h2>
-          <button onClick={() => navigate(-1)} className="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold">
-            Kembali
-          </button>
-        </div>
-      </DashboardLayout>
+      <div className="flex flex-col items-center justify-center text-center p-6 min-h-[80vh]">
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">Profil Tidak Ditemukan</h2>
+        <p className="text-slate-500 mb-6">Pengguna yang kamu cari mungkin sudah dihapus atau URL tidak valid.</p>
+        <button 
+          onClick={() => navigate(-1)} 
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-bold transition-colors"
+        >
+          Kembali
+        </button>
+      </div>
     );
   }
 
@@ -82,7 +87,7 @@ export default function ProfileDetailPage({ onLogout }) {
 
   // 👇 STATE 3: BERHASIL LOAD DATA
   return (
-    <DashboardLayout onLogout={onLogout}>
+    <div className="w-full">
       
       {/* Banner / Header Profil */}
       <div className="h-48 md:h-64 bg-gradient-to-r from-blue-600 to-indigo-700 relative">
@@ -128,7 +133,7 @@ export default function ProfileDetailPage({ onLogout }) {
               <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <Briefcase className="text-blue-500" /> Tentang Saya
               </h2>
-              <p className="text-slate-600 leading-relaxed">
+              <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
                 {renderSafeContent(profile.bio, "Pengguna ini belum menuliskan deskripsi diri.")}
               </p>
             </div>
@@ -138,7 +143,7 @@ export default function ProfileDetailPage({ onLogout }) {
                 <Award className="text-rose-500" /> Prestasi & Portofolio
               </h2>
               <div className="text-slate-600 leading-relaxed">
-                {Array.isArray(profile.achievements) ? (
+                {Array.isArray(profile.achievements) && profile.achievements.length > 0 ? (
                   <ul className="list-disc ml-5 space-y-2">
                     {profile.achievements.map((item, i) => (
                       <li key={i}>{typeof item === 'object' ? (item.title || item.name) : item}</li>
@@ -180,6 +185,6 @@ export default function ProfileDetailPage({ onLogout }) {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
