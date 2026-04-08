@@ -4,7 +4,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './api/supabase'; 
 
 // --- IMPORTS LAYOUT & PAGES ---
-import DashboardLayout from './components/DashboardLayout'; // Pastikan path ini sesuai!
+import DashboardLayout from './components/layout/DashboardLayout'; // Pastikan path ini sesuai!
 
 import BankIdePage from './pages/BankIdePage';
 import LandingPage from './pages/LandingPage';
