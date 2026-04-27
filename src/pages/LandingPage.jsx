@@ -103,6 +103,8 @@ export default function LandingPage() {
           Temukan partner mahasiswa dengan skill yang melengkapi idemu. Berhenti berjuang sendiri, mulai menang bersama-sama.
         </p>
         
+        <BackendTest />
+        
         {/* Buttons Action */}
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
           <button 
@@ -136,6 +138,9 @@ export default function LandingPage() {
         </div>
 
       </main>
+    </div>
+  );
+}n>
     </div>
   );
 }
